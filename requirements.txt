@@ -1,0 +1,31 @@
+# Core ML & NLP
+torch>=2.0.0
+transformers>=4.38.0
+sentence-transformers>=2.7.0
+nltk>=3.8.1
+textattack>=0.3.10
+
+# LLM APIs
+openai>=1.30.0
+
+# Jailbreak benchmark
+jailbreakbench>=0.2.0
+
+# Data & evaluation
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+openpyxl>=3.1.0
+
+# Visualisation (notebooks)
+matplotlib>=3.7.0
+seaborn>=0.13.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+tqdm>=4.66.0
+
+# Notebook
+jupyter>=1.0.0
+ipywidgets>=8.0.0
