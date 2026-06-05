@@ -1,5 +1,6 @@
 # Core ML & NLP
 torch>=2.0.0
+datasets>=2.19.0            # HuggingFace datasets (SST-2 fallback download)
 transformers>=4.38.0
 sentence-transformers>=2.7.0
 nltk>=3.8.1

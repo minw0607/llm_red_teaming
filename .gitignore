@@ -25,10 +25,15 @@ env/
 
 # Results & outputs (may contain sensitive data)
 results/
-*.csv
 *.xlsx
 *.xls
 *.json.bak
+
+# CSV outputs in results/ — but NOT data/ (dataset files are intentionally tracked)
+results/*.csv
+
+# Explicitly keep the bundled datasets
+!data/**
 
 # Sensitive / large model files
 *.bin
