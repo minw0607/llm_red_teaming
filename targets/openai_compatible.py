@@ -37,11 +37,32 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-def _is_azure(base_url: str | None) -> bool:
-    """Heuristic: Azure endpoints contain 'openai.azure.com' or 'azure.com'."""
+def _is_azure(base_url: str | None, api_version: str | None = None) -> bool:
+    """
+    Decide whether to use the AzureOpenAI client.
+
+    Three signals, any one is sufficient:
+    1. Explicit Azure domain  — ``*.openai.azure.com``
+    2. ``azure.com`` anywhere in the URL
+    3. Custom endpoint (not api.openai.com) AND api_version is set.
+       This catches Azure APIM gateways at arbitrary domains
+       (e.g. atlas.protiviti.com) which still require the Azure client's
+       URL pattern: /openai/deployments/{model}/chat/completions?api-version=…
+
+    Standard OpenAI / Groq / Together / Ollama never need api_version,
+    so signal 3 is a safe discriminator.
+    """
     if not base_url:
         return False
-    return "openai.azure.com" in base_url or "azure.com" in base_url
+    if "openai.azure.com" in base_url:
+        return True
+    if "azure.com" in base_url:
+        return True
+    # APIM or other Azure proxy: custom domain + api_version present
+    is_custom_endpoint = "api.openai.com" not in base_url
+    if is_custom_endpoint and api_version:
+        return True
+    return False
 
 
 class OpenAICompatibleTarget:
@@ -106,7 +127,7 @@ class OpenAICompatibleTarget:
             self.extra_headers[apim_header] = apim_key
 
         # Instantiate the right client
-        if _is_azure(self.base_url):
+        if _is_azure(self.base_url, self.api_version):
             self._client = AzureOpenAI(
                 api_key=self.api_key,
                 azure_endpoint=self.base_url,
@@ -220,9 +241,14 @@ class OpenAICompatibleTarget:
 
     def __repr__(self) -> str:
         endpoint = self.base_url or "https://api.openai.com"
+        # Distinguish native Azure from APIM-gateway Azure
+        if self._provider == "azure" and "azure.com" not in (self.base_url or ""):
+            provider_label = "azure_apim"
+        else:
+            provider_label = self._provider
         return (
             f"OpenAICompatibleTarget("
-            f"provider={self._provider!r}, "
+            f"provider={provider_label!r}, "
             f"model={self.model!r}, "
             f"endpoint={endpoint!r})"
         )
