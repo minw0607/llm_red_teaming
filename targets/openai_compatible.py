@@ -27,10 +27,14 @@ Usage
 from __future__ import annotations
 
 import os
+import time
+import logging
 from dotenv import load_dotenv
-from openai import OpenAI, AzureOpenAI
+from openai import OpenAI, AzureOpenAI, APIStatusError, RateLimitError
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def _is_azure(base_url: str | None) -> bool:
@@ -67,7 +71,13 @@ class OpenAICompatibleTarget:
         Additional HTTP headers, e.g. Azure APIM subscription keys.
         Automatically populated from ``AZURE_APIM_HEADER_NAME`` /
         ``AZURE_APIM_SUBSCRIPTION_KEY`` env vars if present.
+    max_retries : int
+        Number of retry attempts on transient errors (429, 500, 503).
+        Uses exponential backoff: 2, 4, 8 … seconds. Default 3.
     """
+
+    # HTTP status codes treated as transient / retriable
+    _RETRIABLE_STATUSES = {429, 500, 502, 503, 504}
 
     def __init__(
         self,
@@ -78,6 +88,7 @@ class OpenAICompatibleTarget:
         temperature: float = 0.0,
         max_tokens: int = 512,
         extra_headers: dict | None = None,
+        max_retries: int = 3,
     ):
         self.api_key     = api_key  or os.getenv("OPENAI_API_KEY", "")
         self.base_url    = base_url or os.getenv("OPENAI_BASE_URL") or None
@@ -85,6 +96,7 @@ class OpenAICompatibleTarget:
         self.model       = model or os.getenv("TARGET_MODEL", "gpt-4o")
         self.temperature = temperature
         self.max_tokens  = max_tokens
+        self.max_retries = max_retries
 
         # Build extra headers (APIM gateway support)
         self.extra_headers = extra_headers or {}
@@ -122,6 +134,9 @@ class OpenAICompatibleTarget:
         """
         Send a chat completion request and return the response text.
 
+        Automatically retries on transient errors (HTTP 429 / 500 / 502 /
+        503 / 504) with exponential backoff (2 s, 4 s, 8 s, …).
+
         Parameters
         ----------
         user_prompt : str
@@ -135,17 +150,56 @@ class OpenAICompatibleTarget:
         -------
         str
             The model's response, stripped of leading/trailing whitespace.
+
+        Raises
+        ------
+        openai.APIStatusError
+            Re-raised after all retry attempts are exhausted, or immediately
+            for non-retriable errors (e.g. 401 Unauthorized, 404 Not Found).
         """
-        response = self._client.chat.completions.create(
-            model=model or self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_prompt},
-            ],
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-        )
-        return response.choices[0].message.content.strip()
+        last_exc: Exception | None = None
+
+        for attempt in range(self.max_retries):
+            try:
+                response = self._client.chat.completions.create(
+                    model=model or self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user",   "content": user_prompt},
+                    ],
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+                return response.choices[0].message.content.strip()
+
+            except APIStatusError as exc:
+                status = exc.status_code
+                if status not in self._RETRIABLE_STATUSES:
+                    raise  # non-retriable (401, 404, etc.) — fail immediately
+
+                last_exc = exc
+                wait = 2 ** (attempt + 1)          # 2 s, 4 s, 8 s …
+                logger.warning(
+                    "HTTP %d on attempt %d/%d — retrying in %ds  [%s]",
+                    status, attempt + 1, self.max_retries, wait,
+                    getattr(exc, "message", str(exc))[:120],
+                )
+                print(
+                    f"  ⚠️  HTTP {status} (attempt {attempt+1}/{self.max_retries})"
+                    f" — retrying in {wait}s…"
+                )
+                time.sleep(wait)
+
+            except Exception as exc:        # network timeout, SSL, etc.
+                last_exc = exc
+                wait = 2 ** (attempt + 1)
+                logger.warning("Unexpected error on attempt %d: %s", attempt + 1, exc)
+                print(f"  ⚠️  {type(exc).__name__} (attempt {attempt+1}/{self.max_retries}) — retrying in {wait}s…")
+                time.sleep(wait)
+
+        raise RuntimeError(
+            f"All {self.max_retries} retry attempts failed."
+        ) from last_exc
 
     # ── Convenience wrappers ──────────────────────────────────────────────────
 
