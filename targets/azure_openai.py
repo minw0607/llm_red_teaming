@@ -43,13 +43,13 @@ class AzureOpenAITarget(OpenAICompatibleTarget):
         endpoint: str | None = None,
         api_version: str | None = None,
         model: str | None = None,
-        temperature: float = 0.0,
-        max_tokens: int = 512,
+        temperature: float | None = None,
+        max_completion_tokens: int = 512,
     ):
-        resolved_key      = api_key   or os.getenv("OPENAI_API_KEY")      or os.getenv("AZURE_OPENAI_API_KEY", "")
-        resolved_endpoint = endpoint  or os.getenv("OPENAI_BASE_URL")     or os.getenv("AZURE_OPENAI_ENDPOINT")
-        resolved_version  = api_version or os.getenv("OPENAI_API_VERSION") or os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-        resolved_model    = model     or os.getenv("TARGET_MODEL")         or os.getenv("AZURE_OPENAI_MODEL", "gpt-4o")
+        resolved_key      = api_key     or os.getenv("OPENAI_API_KEY")       or os.getenv("AZURE_OPENAI_API_KEY", "")
+        resolved_endpoint = endpoint    or os.getenv("OPENAI_BASE_URL")      or os.getenv("AZURE_OPENAI_ENDPOINT")
+        resolved_version  = api_version or os.getenv("OPENAI_API_VERSION")   or os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+        resolved_model    = model       or os.getenv("TARGET_MODEL")          or os.getenv("AZURE_OPENAI_MODEL", "gpt-4o")
 
         super().__init__(
             api_key=resolved_key,
@@ -57,5 +57,5 @@ class AzureOpenAITarget(OpenAICompatibleTarget):
             api_version=resolved_version,
             model=resolved_model,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_completion_tokens=max_completion_tokens,
         )

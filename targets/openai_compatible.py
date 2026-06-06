@@ -84,10 +84,14 @@ class OpenAICompatibleTarget:
     model : str | None
         Model / deployment name. Reads ``TARGET_MODEL`` from env,
         defaults to ``"gpt-4o"``.
-    temperature : float
-        Sampling temperature (default 0.0 — deterministic).
-    max_tokens : int
+    temperature : float | None
+        Sampling temperature. Pass ``None`` to omit the parameter entirely —
+        required for gpt-5 / o-series reasoning models which reject
+        ``temperature`` outright. Default ``None`` (omitted).
+    max_completion_tokens : int
         Maximum tokens in the response (default 512).
+        Uses ``max_completion_tokens`` (supported by all models including
+        gpt-5 / o-series). The legacy ``max_tokens`` is no longer sent.
     extra_headers : dict | None
         Additional HTTP headers, e.g. Azure APIM subscription keys.
         Automatically populated from ``AZURE_APIM_HEADER_NAME`` /
@@ -98,6 +102,7 @@ class OpenAICompatibleTarget:
     """
 
     # HTTP status codes treated as transient / retriable
+    # 400 is intentionally excluded — a bad request won't fix itself on retry
     _RETRIABLE_STATUSES = {429, 500, 502, 503, 504}
 
     def __init__(
@@ -106,18 +111,18 @@ class OpenAICompatibleTarget:
         base_url: str | None = None,
         api_version: str | None = None,
         model: str | None = None,
-        temperature: float = 0.0,
-        max_tokens: int = 512,
+        temperature: float | None = None,
+        max_completion_tokens: int = 512,
         extra_headers: dict | None = None,
         max_retries: int = 3,
     ):
-        self.api_key     = api_key  or os.getenv("OPENAI_API_KEY", "")
-        self.base_url    = base_url or os.getenv("OPENAI_BASE_URL") or None
-        self.api_version = api_version or os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
-        self.model       = model or os.getenv("TARGET_MODEL", "gpt-4o")
-        self.temperature = temperature
-        self.max_tokens  = max_tokens
-        self.max_retries = max_retries
+        self.api_key               = api_key  or os.getenv("OPENAI_API_KEY", "")
+        self.base_url              = base_url or os.getenv("OPENAI_BASE_URL") or None
+        self.api_version           = api_version or os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
+        self.model                 = model or os.getenv("TARGET_MODEL", "gpt-4o")
+        self.temperature           = temperature          # None = omit from request
+        self.max_completion_tokens = max_completion_tokens
+        self.max_retries           = max_retries
 
         # Build extra headers (APIM gateway support)
         self.extra_headers = extra_headers or {}
@@ -176,27 +181,32 @@ class OpenAICompatibleTarget:
         ------
         openai.APIStatusError
             Re-raised after all retry attempts are exhausted, or immediately
-            for non-retriable errors (e.g. 401 Unauthorized, 404 Not Found).
+            for non-retriable errors (400 Bad Request, 401, 404, etc.).
         """
         last_exc: Exception | None = None
 
+        # Build request kwargs — only include temperature when explicitly set.
+        # gpt-5 / o-series reasoning models reject the temperature parameter.
+        request_kwargs: dict = {
+            "model":                model or self.model,
+            "messages":             [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+            "max_completion_tokens": self.max_completion_tokens,
+        }
+        if self.temperature is not None:
+            request_kwargs["temperature"] = self.temperature
+
         for attempt in range(self.max_retries):
             try:
-                response = self._client.chat.completions.create(
-                    model=model or self.model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": user_prompt},
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                )
+                response = self._client.chat.completions.create(**request_kwargs)
                 return response.choices[0].message.content.strip()
 
             except APIStatusError as exc:
                 status = exc.status_code
                 if status not in self._RETRIABLE_STATUSES:
-                    raise  # non-retriable (401, 404, etc.) — fail immediately
+                    raise  # non-retriable (400, 401, 404 …) — fail immediately
 
                 last_exc = exc
                 wait = 2 ** (attempt + 1)          # 2 s, 4 s, 8 s …
