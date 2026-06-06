@@ -23,6 +23,21 @@ from transformers import pipeline
 from sentence_transformers import SentenceTransformer, util
 
 
+def _resolve_model_path(env_var: str, default: str) -> str:
+    """
+    Read a model path from an env var, falling back to *default*.
+
+    python-dotenv does NOT strip inline comments when a value is otherwise
+    blank (e.g. ``LOCAL_BERT_PATH=   # e.g. ./models/bert``).  This helper
+    discards any value that starts with '#' or is whitespace-only, so a
+    commented-out / empty env var correctly resolves to the default.
+    """
+    raw = os.getenv(env_var, "").strip()
+    if not raw or raw.startswith("#"):
+        return default
+    return raw
+
+
 class BERTAttack:
     """
     Context-aware word substitution via BERT fill-mask.
@@ -51,16 +66,12 @@ class BERTAttack:
         top_k: int = 5,
         sim_threshold: float = 0.85,
     ):
-        bert_path = (
-            bert_model_path
-            or os.getenv("LOCAL_BERT_PATH", "bert-base-uncased")
+        bert_path = bert_model_path or _resolve_model_path(
+            "LOCAL_BERT_PATH", "bert-base-uncased"
         )
-        sent_path = (
-            sentence_model_path
-            or os.getenv(
-                "LOCAL_SENTENCE_TRANSFORMER_PATH",
-                "sentence-transformers/all-MiniLM-L6-v2",
-            )
+        sent_path = sentence_model_path or _resolve_model_path(
+            "LOCAL_SENTENCE_TRANSFORMER_PATH",
+            "sentence-transformers/all-MiniLM-L6-v2",
         )
         self.top_k = top_k
         self.sim_threshold = sim_threshold
