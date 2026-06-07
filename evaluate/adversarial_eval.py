@@ -62,15 +62,21 @@ def run_all_attacks(
         ``text_changed``, ``label``, ``original_pred``, ``attacked_pred``,
         ``orig_correct``, ``atk_correct``, ``flipped``, ``semantic_sim``
     """
-    # Attack → level mapping for richer reporting
+    # Attack → level mapping for richer reporting.
+    # New attacks are looked up here; unknown names fall back to "unknown".
     ATTACK_LEVELS = {
-        "TextBugger":     "character",
-        "DeepWordBug":    "character",
-        "TextFooler":     "word",
-        "BERTAttack":     "word",
-        "CheckList":      "sentence",
-        "StressTest":     "sentence",
-        "SemanticAttack": "semantic",
+        # ── Original 7 ──────────────────────────────────────────────────
+        "TextBugger":        "character",
+        "DeepWordBug":       "character",
+        "TextFooler":        "word",
+        "BERTAttack":        "word",
+        "CheckList":         "sentence",
+        "StressTest":        "sentence",
+        "SemanticAttack":    "semantic",
+        # ── Structural (Tier 1 expansion) ────────────────────────────────
+        "Homoglyph":         "structural",
+        "BackTranslation":   "structural",
+        "NegationInjection": "structural",
     }
 
     sample_df = eval_df.head(n_samples).reset_index(drop=True)

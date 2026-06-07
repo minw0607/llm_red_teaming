@@ -3,7 +3,11 @@ evaluate/metrics.py — Standardised red-teaming evaluation metrics.
 
 Functions
 ---------
-compute_attack_summary   : Per-attack accuracy, ASR, stealth, risk score
+compute_attack_summary   : Per-attack accuracy, ASR, stealth, risk score.
+                           When the results DataFrame contains composite
+                           stealth columns (from evaluate.stealth), the
+                           summary automatically includes ppl_ratio,
+                           edit_sim, and composite_stealth per attack.
 risk_score               : Impact × Stealth composite danger score
 flag_human_review        : Identify high-risk flipped cases needing review
 adversarial_report       : Legacy accuracy-drop summary table
@@ -27,24 +31,30 @@ def compute_attack_summary(results_df: pd.DataFrame) -> pd.DataFrame:
     Compute a per-attack summary from the long-form results DataFrame
     produced by ``run_all_attacks()``.
 
-    Columns returned
-    ----------------
+    Columns returned (always present)
+    ----------------------------------
     attack            Attack name
-    level             Perturbation level (character / word / sentence / semantic)
+    level             Perturbation level (character / word / sentence / semantic / structural)
     n_samples         Effective sample count (excluding errors)
     original_acc      Accuracy on unperturbed inputs
     attacked_acc      Accuracy on perturbed inputs
     acc_drop          original_acc − attacked_acc  (≥0 = model degraded)
     asr               Attack Success Rate — fraction of originally-correct
                       predictions that were flipped by the attack
-    avg_semantic_sim  Mean cosine similarity between original and attacked text
-                      (only for samples where text actually changed).
-                      1.0 = identical meaning,  0.0 = completely different.
-    stealth_score     avg_semantic_sim when available, else NaN.
-                      High stealth = attack is hard to detect.
-    risk_score        acc_drop × stealth_score.
-                      High risk = both impactful AND stealthy.
+    avg_semantic_sim  Mean SentenceTransformer cosine similarity (where text changed)
+    stealth_score     Composite stealth when available, else avg_semantic_sim.
+                      Higher = harder for humans to detect.
+    risk_score        acc_drop × stealth_score
+
+    Additional columns (present when add_stealth_components() was called)
+    ----------------------------------------------------------------------
+    avg_ppl_ratio     Mean ppl_attacked / ppl_original  (>1 = less natural)
+    avg_edit_sim      Mean character-level edit similarity (difflib ratio)
+    avg_composite     Mean composite_stealth score
     """
+    # Detect whether composite stealth columns are available
+    has_composite = "composite_stealth" in results_df.columns
+
     rows = []
     for attack_name, grp in results_df.groupby("attack", sort=False):
         level     = grp["level"].iloc[0]
@@ -61,13 +71,11 @@ def compute_attack_summary(results_df: pd.DataFrame) -> pd.DataFrame:
         originally_correct = valid[valid["orig_correct"]]
         asr = originally_correct["flipped"].mean() if len(originally_correct) else 0.0
 
-        # Stealth: mean semantic similarity where text changed
-        changed = valid[valid["text_changed"] & valid["semantic_sim"].notna()]
+        # Semantic similarity (always available when encoder was provided)
+        changed  = valid[valid["text_changed"] & valid["semantic_sim"].notna()]
         avg_sim  = changed["semantic_sim"].mean() if len(changed) else float("nan")
 
-        r_score  = (drop * avg_sim) if not np.isnan(avg_sim) else float("nan")
-
-        rows.append({
+        row: dict = {
             "attack":           attack_name,
             "level":            level,
             "n_samples":        n,
@@ -76,9 +84,34 @@ def compute_attack_summary(results_df: pd.DataFrame) -> pd.DataFrame:
             "acc_drop":         round(drop,      4),
             "asr":              round(asr,       4),
             "avg_semantic_sim": round(avg_sim,   4) if not np.isnan(avg_sim) else float("nan"),
-            "stealth_score":    round(avg_sim,   4) if not np.isnan(avg_sim) else float("nan"),
-            "risk_score":       round(r_score,   4) if not np.isnan(r_score) else float("nan"),
-        })
+        }
+
+        # Composite stealth components (optional — from evaluate.stealth)
+        if has_composite:
+            ch = valid[valid["text_changed"]]
+
+            ppl_vals  = ch["ppl_ratio"].dropna()
+            edit_vals = ch["edit_sim"].dropna()
+            comp_vals = ch["composite_stealth"].dropna()
+
+            avg_ppl  = ppl_vals.mean()  if len(ppl_vals)  else float("nan")
+            avg_edit = edit_vals.mean() if len(edit_vals) else float("nan")
+            avg_comp = comp_vals.mean() if len(comp_vals) else float("nan")
+
+            row["avg_ppl_ratio"] = round(avg_ppl,  4) if not np.isnan(avg_ppl)  else float("nan")
+            row["avg_edit_sim"]  = round(avg_edit, 4) if not np.isnan(avg_edit) else float("nan")
+            row["avg_composite"] = round(avg_comp, 4) if not np.isnan(avg_comp) else float("nan")
+
+            # stealth_score = composite when available, else semantic sim
+            stealth  = avg_comp if not np.isnan(avg_comp) else avg_sim
+            r_score  = (drop * stealth) if not np.isnan(stealth) else float("nan")
+            row["stealth_score"] = round(stealth, 4) if not np.isnan(stealth) else float("nan")
+        else:
+            r_score = (drop * avg_sim) if not np.isnan(avg_sim) else float("nan")
+            row["stealth_score"] = round(avg_sim, 4) if not np.isnan(avg_sim) else float("nan")
+
+        row["risk_score"] = round(r_score, 4) if not np.isnan(r_score) else float("nan")
+        rows.append(row)
 
     df = pd.DataFrame(rows)
     if "risk_score" in df.columns:
