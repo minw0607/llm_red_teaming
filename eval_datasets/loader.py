@@ -1,5 +1,5 @@
 """
-datasets/loader.py — Unified dataset loader for adversarial evaluation.
+eval_datasets/loader.py — Unified dataset loader for adversarial evaluation.
 
 Supported datasets
 ------------------
@@ -21,7 +21,7 @@ results came from when mixing datasets in a single evaluation.
 
 Usage
 -----
-    from datasets import load_eval_dataset
+    from eval_datasets import load_eval_dataset
     df = load_eval_dataset("sst2",        data_dir="../data")
     df = load_eval_dataset("advglue_sst2")
 """
@@ -47,7 +47,7 @@ def _load_sst2(data_dir: str = "../data") -> pd.DataFrame:
         df = pd.read_csv(dev_path, sep="\t")
     else:
         print("SST-2 dev.tsv not found — downloading from HuggingFace …")
-        from datasets import load_dataset as hf_load
+        import importlib; hf_load = importlib.import_module("datasets").load_dataset
         hf_ds = hf_load("stanfordnlp/sst2")
         df = hf_ds["validation"].to_pandas()[["sentence", "label"]]
         os.makedirs(os.path.dirname(dev_path), exist_ok=True)
@@ -73,7 +73,7 @@ def _load_advglue_sst2() -> pd.DataFrame:
     HuggingFace: https://huggingface.co/datasets/adv_glue
     """
     try:
-        from datasets import load_dataset as hf_load
+        import importlib; hf_load = importlib.import_module("datasets").load_dataset
         ds = hf_load("adv_glue", "adv_sst2", trust_remote_code=True)
         # AdvGLUE uses the "validation" split
         split = "validation" if "validation" in ds else list(ds.keys())[0]

@@ -1,5 +1,5 @@
 """
-datasets/
+eval_datasets/
 Evaluation dataset loaders — all normalised to a common DataFrame schema.
 
 Every loader returns a pandas DataFrame with at minimum:
