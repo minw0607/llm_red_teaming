@@ -145,25 +145,40 @@ def flag_human_review(
     -------
     pd.DataFrame
         Subset of rows with a ``review_priority`` column:
-        ``HIGH``   — flipped AND sim ≥ threshold
-        ``MEDIUM`` — flipped AND sim < threshold (detectable but still succeeded)
+        ``HIGH``   — flipped AND text changed AND sim ≥ threshold
+        ``MEDIUM`` — flipped AND (text unchanged OR sim < threshold)
         ``LOW``    — not flipped but text changed substantially (sim < 0.6)
+
+    Notes
+    -----
+    Cases where ``text_changed=False`` but ``flipped=True`` are rated MEDIUM
+    rather than HIGH — the model gave different answers to the *same* text on
+    two separate API calls, indicating model non-determinism rather than a
+    genuine adversarial success.  These are still worth reviewing (they reveal
+    decision-boundary instability) but should not be conflated with stealthy
+    attacks that actually modified the input.
     """
     df = results_df.copy()
+
+    # Whether the text was actually modified (column may not exist in legacy results)
+    text_changed = df["text_changed"] if "text_changed" in df.columns else pd.Series(True, index=df.index)
 
     conditions = []
     choices    = []
 
-    # HIGH: attack succeeded AND was stealthy
-    conditions.append(df["flipped"] & (df["semantic_sim"] >= stealth_threshold))
+    # HIGH: attack succeeded, text was modified, AND change was stealthy
+    conditions.append(df["flipped"] & text_changed & (df["semantic_sim"] >= stealth_threshold))
     choices.append("HIGH")
 
-    # MEDIUM: attack succeeded but change was detectable
-    conditions.append(df["flipped"] & (df["semantic_sim"] < stealth_threshold))
+    # MEDIUM: attack succeeded but text unchanged (model non-determinism) OR change detectable
+    conditions.append(df["flipped"] & (~text_changed))
+    choices.append("MEDIUM")
+
+    conditions.append(df["flipped"] & text_changed & (df["semantic_sim"] < stealth_threshold))
     choices.append("MEDIUM")
 
     # MEDIUM (no sim): attack succeeded but similarity not computed
-    conditions.append(df["flipped"] & df["semantic_sim"].isna())
+    conditions.append(df["flipped"] & text_changed & df["semantic_sim"].isna())
     choices.append("MEDIUM")
 
     # LOW: didn't flip but large semantic drift — may indicate aggressive perturbation

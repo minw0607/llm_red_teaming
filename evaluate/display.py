@@ -72,6 +72,16 @@ def display_human_review(
         count = priority_counts.get(priority, 0)
         print(f"  {icon} {priority:8s} : {count}")
 
+    # Warn if any MEDIUM cases are due to model non-determinism
+    if "text_changed" in review_df.columns:
+        nondeterminism = review_df[
+            (review_df["review_priority"] == "MEDIUM") & (~review_df["text_changed"])
+        ]
+        if len(nondeterminism):
+            print(f"\n  ℹ️  {len(nondeterminism)} MEDIUM case(s) flagged due to model non-determinism")
+            print(f"     (text_changed=False but model gave different answers on two calls)")
+            print(f"     These reveal decision-boundary instability, not a true attack success.")
+
     # ── HIGH priority detail table ────────────────────────────────────────────
     high_priority = review_df[review_df["review_priority"] == "HIGH"]
     sim_col = "composite_stealth" if "composite_stealth" in review_df.columns else "semantic_sim"
