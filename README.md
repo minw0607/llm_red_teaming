@@ -54,6 +54,7 @@ llm_red_teaming/
 │   ├── stealth.py              # Composite stealth score               [✅ implemented]
 │   ├── plots.py                # Risk matrix + accuracy bar charts     [✅ implemented]
 │   ├── display.py              # Human review display helper           [✅ implemented]
+│   ├── regulatory.py           # Dynamic regulatory impact mapping     [✅ implemented]
 │   ├── consistency.py          # Paraphrase & self-consistency         [📋 planned]
 │   └── fairness.py             # Counterfactual demographic scorer     [📋 planned]
 │
@@ -136,6 +137,30 @@ Results from Notebook 01 — **10 adversarial attacks** evaluated on 50 SST-2 sa
 - 🟠 **Structural attacks dominate** the high-stealth cluster: all three structural attacks score stealth > 0.82
 - ✅ **Homoglyph** produces no flips at this sample size — frontier models are resilient to Unicode substitution
 - ℹ️ **BackTranslation** slightly *improves* accuracy (−2% drop) — MarianMT normalises SST-2's pre-tokenised text, incidentally cleaning noise
+
+### Notable Findings & Interpretations
+
+| Finding | What happened | Why it matters |
+|---|---|---|
+| **BackTranslation: acc_drop = −2%** | The EN→DE→EN pipeline normalised SST-2's noisy pre-tokenised source text (removes spaces, fixes capitalisation) — the model classifies the *cleaner* output better | Not a bug — a real finding: back-translation at this scale acts as **data cleaning**, not adversarial attack. Risk shifts to higher-level semantic manipulation in longer, well-formed inputs. |
+| **BERTAttack: HIGH demoted to MEDIUM** | One case where `text_changed=False` but the model flipped its prediction — model gave different answers to the *same* text on two API calls | **Model non-determinism**, not attack success. Fixed: `display_human_review()` now prints an explicit note and demotes these to MEDIUM. Reveals decision-boundary instability; document in model card. |
+| **SemanticAttack: 0% → 4% variance** | 2 new flips appeared at n=50 vs. a prior run showing 0% drop | Expected run-to-run variance at small sample size — one additional flip = 2% swing. Use n ≥ 200 for stable ASR estimates. The attack is real; the variance is a measurement artefact. |
+
+### Regulatory Alignment
+
+Beyond the static framework mapping in Notebook 01's industry overview, the toolkit now generates a **dynamic regulatory impact report** from each test run via `regulatory_report()`:
+
+- **Finding-level citations** — only attacks that showed meaningful impact in *this run* are reported; actual metric values (acc_drop, ASR, stealth) are embedded in each citation
+- **Special-case detection** — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific regulatory obligations
+- **Frameworks covered:** NIST AI 600-1 (§2.3 Confabulation, §2.5 Information Integrity, §2.6 Information Security) · MITRE ATLAS (AML.T0043, T0015, T0016, T0040) · OWASP LLM Top 10 (LLM01, LLM09) · EU AI Act (Art. 9, 13, 15, 17)
+- **Recommended actions** — severity-graded remediation steps generated from the actual findings
+
+```python
+from evaluate import regulatory_report, render_regulatory_heatmap
+
+reg_df = regulatory_report(summary_df, review_df=review_df)
+render_regulatory_heatmap(reg_df, save_path='results/regulatory_heatmap.png')
+```
 
 > Full results (CSVs + figures) are saved to `results/` — gitignored. Re-run Notebook 01 to reproduce.
 
