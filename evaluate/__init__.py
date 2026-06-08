@@ -16,6 +16,8 @@ from .stealth import (
     composite_stealth_score,
     add_stealth_components,
 )
+from .plots import plot_adversarial_summary, DEFAULT_LEVEL_COLORS
+from .display import display_human_review
 
 __all__ = [
     # Core evaluation pipeline
@@ -29,6 +31,11 @@ __all__ = [
     "edit_similarity",
     "composite_stealth_score",
     "add_stealth_components",
+    # Visualisation
+    "plot_adversarial_summary",
+    "DEFAULT_LEVEL_COLORS",
+    # Notebook display
+    "display_human_review",
     # Legacy / jailbreak helpers
     "accuracy_drop",
     "attack_success_rate",
