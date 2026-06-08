@@ -39,8 +39,8 @@ llm_red_teaming/
 │   ├── word/                   # TextFooler, BERTAttack                [✅ implemented]
 │   ├── sentence/               # CheckList, StressTest                 [✅ implemented]
 │   ├── semantic/               # SemanticAttack                        [✅ implemented]
-│   ├── prompt/                 # Injection, jailbreak, role-play       [🔜 next]
-│   └── structural/             # Back-translation, homoglyph, negation [🔜 next]
+│   ├── structural/             # BackTranslation, Homoglyph, Negation  [✅ implemented]
+│   └── prompt/                 # Injection, jailbreak, role-play       [🔜 next]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -51,23 +51,26 @@ llm_red_teaming/
 ├── evaluate/                   # Metrics and reporting
 │   ├── metrics.py              # ASR, risk score, human review queue   [✅ implemented]
 │   ├── adversarial_eval.py     # run_all_attacks() pipeline            [✅ implemented]
-│   ├── stealth.py              # Composite stealth score               [🔜 next]
+│   ├── stealth.py              # Composite stealth score               [✅ implemented]
+│   ├── plots.py                # Risk matrix + accuracy bar charts     [✅ implemented]
+│   ├── display.py              # Human review display helper           [✅ implemented]
 │   ├── consistency.py          # Paraphrase & self-consistency         [📋 planned]
 │   └── fairness.py             # Counterfactual demographic scorer     [📋 planned]
 │
-├── datasets/                   # Evaluation datasets
+├── eval_datasets/              # Evaluation datasets
 │   ├── sst2/                   # SST-2 sentiment benchmark             [✅ implemented]
 │   ├── nli/                    # SNLI, MultiNLI, ANLI, AdvGLUE         [📋 planned]
 │   ├── toxicity/               # ToxiGen, HateXplain                   [📋 planned]
 │   └── safety/                 # AdvBench, HarmBench jailbreak banks   [📋 planned]
 │
 ├── notebooks/                  # Lightweight demo notebooks
-│   ├── 01_adversarial_nlp_demo.ipynb   # 7 attacks × SST-2 [✅]
+│   ├── 01_adversarial_nlp_demo.ipynb   # 10 attacks × SST-2 [✅]
 │   ├── 02_jailbreaking_demo.ipynb      # JailbreakBench    [✅]
 │   ├── 03_prompt_injection.ipynb       # Direct + indirect  [🔜]
 │   ├── 04_fairness_counterfactual.ipynb # Demographic swap  [📋]
 │   └── 05_nli_robustness.ipynb         # AdvGLUE + ANLI    [📋]
 │
+├── docs/images/                # Figures referenced in README
 ├── configs/                    # Experiment configuration files
 ├── results/                    # Output files (gitignored)
 ├── .env.example                # API key template
@@ -103,6 +106,41 @@ summary = compute_attack_summary(results)
 
 ---
 
+## 📈 Sample Results
+
+Results from Notebook 01 — **10 adversarial attacks** evaluated on 50 SST-2 samples against an Azure-hosted frontier model.
+
+### Risk Matrix & Accuracy Comparison
+
+![Risk Matrix](docs/images/nb01_risk_matrix.png)
+
+*Bubble size = Attack Success Rate (ASR). Shaded region = stealth ≥ 0.80 (danger zone).*
+
+### Attack Summary (n = 50 samples, SST-2 sentiment)
+
+| Attack | Level | Orig Acc | Attacked Acc | Acc Drop | ASR | Stealth | Risk Score |
+|---|---|---|---|---|---|---|---|
+| **NegationInjection** | structural | 100% | 88% | +12% | 12% | 0.936 | 0.1123 |
+| **StressTest** | sentence | 100% | 92% | +8% | 8% | 0.879 | 0.0703 |
+| **SemanticAttack** | semantic | 100% | 96% | +4% | 4% | 0.921 | 0.0368 |
+| **TextFooler** | word | 100% | 96% | +4% | 4% | 0.883 | 0.0353 |
+| **BERTAttack** | word | 100% | 98% | +2% | 2% | 0.989 | 0.0198 |
+| **CheckList** | sentence | 100% | 98% | +2% | 2% | 0.816 | 0.0167 |
+| **DeepWordBug** | character | 100% | 98% | +2% | 2% | 0.821 | 0.0164 |
+| **TextBugger** | character | 100% | 98% | +2% | 2% | 0.814 | 0.0163 |
+| **Homoglyph** | structural | 100% | 100% | +0% | 0% | 0.825 | 0.0000 |
+| **BackTranslation** | structural | 98% | 100% | −2% | 0% | 0.912 | −0.0183 |
+
+**Key findings:**
+- 🔴 **NegationInjection** is the top threat: 12% accuracy drop at 0.936 stealth — semantic-preserving but logically inverted
+- 🟠 **Structural attacks dominate** the high-stealth cluster: all three structural attacks score stealth > 0.82
+- ✅ **Homoglyph** produces no flips at this sample size — frontier models are resilient to Unicode substitution
+- ℹ️ **BackTranslation** slightly *improves* accuracy (−2% drop) — MarianMT normalises SST-2's pre-tokenised text, incidentally cleaning noise
+
+> Full results (CSVs + figures) are saved to `results/` — gitignored. Re-run Notebook 01 to reproduce.
+
+---
+
 ## 🗺️ Attack Library Roadmap
 
 All attacks are mapped to three industry frameworks:
@@ -127,6 +165,9 @@ These attacks perturb input text at increasing levels of abstraction and measure
 | ✅ | **CheckList** | Sentence | Appends a random alphanumeric token to test sensitivity to irrelevant context | AML.T0043 | Information Integrity | LLM09 Misinformation |
 | ✅ | **StressTest** | Sentence | Appends a logically vacuous tautology to probe attention drift | AML.T0043 | Information Integrity · Confabulation | LLM09 Misinformation |
 | ✅ | **SemanticAttack** | Semantic | POS-aware WordNet synonym swap — meaning-preserving, highest stealth | AML.T0043 · AML.T0015 | Information Integrity · Information Security | LLM09 Misinformation |
+| ✅ | **BackTranslation** | Structural | Round-trip EN→DE→EN via MarianMT — fluent paraphrases with high semantic fidelity | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
+| ✅ | **Homoglyph** | Structural | Replaces ASCII characters with visually identical Unicode lookalikes (Cyrillic, Greek) | AML.T0043 | Information Security | LLM01 Prompt Injection · LLM09 Misinformation |
+| ✅ | **NegationInjection** | Structural | Inserts or removes negation words (`not`, `never`, `hardly`) to flip logical meaning | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
 
 **Evaluation metrics (all implemented):** Accuracy Drop · Attack Success Rate (ASR) · Stealth Score (semantic similarity) · Risk Score (Impact × Stealth) · Human Review Queue (HIGH / MEDIUM / LOW)
 
@@ -142,9 +183,9 @@ These attacks represent the dominant real-world threat surface for production LL
 | 🔜 | **Indirect Prompt Injection** | Prompt | Inject adversarial instructions into external content the LLM retrieves or processes (emails, documents, web pages) | AML.T0054 · AML.T0040 | Information Security · Value Chain | LLM01 Prompt Injection · LLM08 Vector & Embedding |
 | 🔜 | **Jailbreak — Role-play / Persona** | Prompt | Instruct the model to adopt a persona (DAN, "evil AI") that bypasses safety alignment | AML.T0054 | Information Security · Harmful Bias | LLM01 Prompt Injection · LLM07 System Prompt Leakage |
 | 🔜 | **Jailbreak — Hypothetical Framing** | Prompt | Wrap harmful requests in fictional, hypothetical, or academic framing to bypass refusal | AML.T0054 | Information Security | LLM01 Prompt Injection |
-| 🔜 | **Back-Translation Attack** | Structural | Translate text to an intermediate language and back to produce fluent paraphrases — cleaner than WordNet synonyms | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-| 🔜 | **Homoglyph / Unicode Attack** | Structural | Replace ASCII characters with visually identical Unicode lookalikes (e.g. Cyrillic `а` for Latin `a`) to bypass keyword filters | AML.T0043 | Information Security | LLM01 Prompt Injection · LLM09 Misinformation |
-| 🔜 | **Negation Injection** | Structural | Insert or remove negation words (`not`, `never`, `hardly`) near predicates to test logical negation robustness | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
+| ✅ | **Back-Translation Attack** | Structural | Translate text to an intermediate language and back to produce fluent paraphrases — cleaner than WordNet synonyms | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
+| ✅ | **Homoglyph / Unicode Attack** | Structural | Replace ASCII characters with visually identical Unicode lookalikes (e.g. Cyrillic `а` for Latin `a`) to bypass keyword filters | AML.T0043 | Information Security | LLM01 Prompt Injection · LLM09 Misinformation |
+| ✅ | **Negation Injection** | Structural | Insert or remove negation words (`not`, `never`, `hardly`) near predicates to test logical negation robustness | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
 
 ---
 
@@ -200,7 +241,7 @@ Current evaluation (Notebook 01) measures **prediction flip** on a classificatio
 | ✅ | **Prediction Flip (ASR)** | Fraction of correct predictions overturned by an attack | SST-2 | Attack Success Rate |
 | ✅ | **Risk Scoring** | Composite danger = Impact × Stealth; ranks attacks by operational priority | SST-2 | Risk Score |
 | ✅ | **Human Review Queue** | Prioritises adversarial examples by flip + stealth for manual inspection | All | HIGH / MEDIUM / LOW |
-| 🔜 | **Composite Stealth Scoring** | Semantic similarity + perplexity ratio + normalised edit distance — richer imperceptibility signal than cosine similarity alone | All | Weighted composite |
+| ✅ | **Composite Stealth Scoring** | Semantic similarity + perplexity ratio + normalised edit distance — richer imperceptibility signal than cosine similarity alone | All | Weighted composite |
 | 🔜 | **Jailbreak Success Rate** | Fraction of jailbreak prompts that elicit a policy-violating response, judged by a classifier | AdvBench · HarmBench | Jailbreak ASR |
 | 🔜 | **Prompt Injection Success Rate** | Fraction of injected instructions that override the system prompt or change model behaviour | Custom · indirect RAG | Override rate |
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
@@ -218,7 +259,7 @@ Current evaluation (Notebook 01) measures **prediction flip** on a classificatio
 
 | Notebook | Status | Description |
 |---|:---:|---|
-| [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 7 adversarial attacks × SST-2 — accuracy drop, risk scoring, stealth, human review queue, MITRE ATLAS + NIST AI 600-1 alignment |
+| [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 10 adversarial attacks × SST-2 — 5 perturbation levels, accuracy drop, composite stealth scoring, risk matrix, human review queue, MITRE ATLAS + NIST AI 600-1 alignment |
 | [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | JailbreakBench goals + PAIR artifacts against GPT-5 via Azure APIM |
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | 🔜 | Direct and indirect (RAG) prompt injection — override rate and payload taxonomy |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | 📋 | Demographic swap testing — attribute-level flip rates and fairness metrics |
