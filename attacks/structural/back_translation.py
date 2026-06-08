@@ -63,30 +63,48 @@ class BackTranslation:
         self._fwd_tokenizer = None
         self._bwd_model     = None
         self._bwd_tokenizer = None
+        # Set to an error string if loading fails — prevents retrying on every call
+        self._load_error: str | None = None
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _load(self) -> None:
-        """Download and cache both MarianMT models (first call only)."""
+        """Download and cache both MarianMT models (first call only).
+
+        Raises ``RuntimeError`` on failure and sets ``_load_error`` so that
+        subsequent calls skip the download and raise immediately — avoiding
+        repeated slow retries on every ``attack()`` call.
+        """
         if self._fwd_model is not None:
             return  # already loaded
+        if self._load_error is not None:
+            raise RuntimeError(self._load_error)
 
         try:
             from transformers import MarianMTModel, MarianTokenizer
         except ImportError as e:
-            raise ImportError(
+            msg = (
                 "transformers is required for BackTranslation. "
                 "Install with: pip install transformers sentencepiece"
-            ) from e
+            )
+            self._load_error = msg
+            raise ImportError(msg) from e
 
-        print(f"Loading BackTranslation models ({self._fwd_name} · {self._bwd_name}) …")
-        self._fwd_tokenizer = MarianTokenizer.from_pretrained(self._fwd_name)
-        self._fwd_model     = MarianMTModel.from_pretrained(self._fwd_name)
-        self._bwd_tokenizer = MarianTokenizer.from_pretrained(self._bwd_name)
-        self._bwd_model     = MarianMTModel.from_pretrained(self._bwd_name)
-        self._fwd_model.eval()
-        self._bwd_model.eval()
-        print("✅ BackTranslation models ready.")
+        try:
+            print(f"Loading BackTranslation models ({self._fwd_name} · {self._bwd_name}) …")
+            self._fwd_tokenizer = MarianTokenizer.from_pretrained(self._fwd_name)
+            self._fwd_model     = MarianMTModel.from_pretrained(self._fwd_name)
+            self._bwd_tokenizer = MarianTokenizer.from_pretrained(self._bwd_name)
+            self._bwd_model     = MarianMTModel.from_pretrained(self._bwd_name)
+            self._fwd_model.eval()
+            self._bwd_model.eval()
+            print("✅ BackTranslation models ready.")
+        except Exception as e:
+            # Clear any partial state so the guard above fires on the next call
+            self._fwd_model = self._fwd_tokenizer = None
+            self._bwd_model = self._bwd_tokenizer = None
+            self._load_error = f"BackTranslation model load failed: {e}"
+            raise RuntimeError(self._load_error) from e
 
     def _translate(self, text: str, model, tokenizer) -> str:
         """Translate *text* with the given MarianMT model/tokenizer pair."""
@@ -123,11 +141,10 @@ class BackTranslation:
         if not text or not text.strip():
             return text
 
-        self._load()
-
         try:
-            pivot     = self._translate(text, self._fwd_model, self._fwd_tokenizer)
-            back      = self._translate(pivot, self._bwd_model, self._bwd_tokenizer)
+            self._load()   # no-op after first success; raises RuntimeError after first failure
+            pivot = self._translate(text, self._fwd_model, self._fwd_tokenizer)
+            back  = self._translate(pivot, self._bwd_model, self._bwd_tokenizer)
             return back.strip() if back.strip() else text
         except Exception:
             return text  # graceful fallback — never raise from attack()
@@ -138,7 +155,10 @@ class BackTranslation:
         return [self.attack(t) for t in texts]
 
     def __repr__(self) -> str:
+        status = "ready" if self._fwd_model is not None else (
+            f"LOAD_ERROR: {self._load_error}" if self._load_error else "not loaded"
+        )
         return (
             f"BackTranslation(level='structural', pivot='{self.pivot_lang}', "
-            f"models='{self._fwd_name}')"
+            f"models='{self._fwd_name}', status='{status}')"
         )
