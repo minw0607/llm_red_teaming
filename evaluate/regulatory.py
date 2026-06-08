@@ -428,20 +428,77 @@ def regulatory_report(
     return df
 
 
+# ── Short-tag extractors for the heatmap ─────────────────────────────────────
+
+def _nist_tags(text: str) -> str:
+    """Extract short NIST AI 600-1 category names from a full citation string."""
+    import re
+    tags = []
+    if re.search(r"Info(?:rmation)? Integrity|§2\.5", text, re.I):
+        tags.append("Info Integrity §2.5")
+    if re.search(r"Info(?:rmation)? Security|§2\.6", text, re.I):
+        tags.append("Info Security §2.6")
+    if re.search(r"Confabulation|§2\.3", text, re.I):
+        tags.append("Confabulation §2.3")
+    if re.search(r"Data (?:Privacy|Provenance)|§2\.1", text, re.I):
+        tags.append("Data Privacy §2.1")
+    if re.search(r"Harmful Bias|§2\.2", text, re.I):
+        tags.append("Harmful Bias §2.2")
+    if re.search(r"data (?:governance|quality)|Art\. 10", text, re.I):
+        tags.append("Data Governance")
+    return "\n".join(tags) if tags else text[:40]
+
+
+def _mitre_tags(text: str) -> str:
+    """Extract MITRE ATT&CK IDs from a full citation string."""
+    import re
+    ids = re.findall(r"AML\.T\d{4}", text)
+    seen: list[str] = []
+    for i in ids:
+        if i not in seen:
+            seen.append(i)
+    return "  ".join(seen) if seen else text[:30]
+
+
+def _owasp_tags(text: str) -> str:
+    """Extract OWASP LLM Top 10 IDs from a full citation string."""
+    import re
+    ids = re.findall(r"LLM\d{2}", text)
+    seen: list[str] = []
+    for i in ids:
+        if i not in seen:
+            seen.append(i)
+    return "  ".join(seen) if seen else text[:20]
+
+
+def _eu_tags(text: str) -> str:
+    """Extract EU AI Act article references from a full citation string."""
+    import re
+    arts = re.findall(r"Art\.\s*\d+(?:\s*§\d+)?", text)
+    seen: list[str] = []
+    for a in arts:
+        a = a.replace("  ", " ")
+        if a not in seen:
+            seen.append(a)
+    return "  ".join(seen) if seen else text[:30]
+
+
 # ── Regulatory heatmap ────────────────────────────────────────────────────────
 
 def render_regulatory_heatmap(
     reg_df: pd.DataFrame,
-    figsize: tuple = (13, None),
+    figsize: tuple = (14, None),
     save_path: str | None = None,
     dpi: int = 150,
 ):
     """
     Render a heatmap showing which regulatory frameworks each finding implicates.
 
-    Rows = findings (truncated); columns = NIST AI 600-1 / MITRE ATLAS /
+    Rows = findings; columns = NIST AI 600-1 / MITRE ATLAS /
     OWASP LLM Top 10 / EU AI Act.  Cell colour = severity (HIGH=red,
-    MEDIUM=orange, LOW=yellow, INFO=blue, — =light grey).
+    MEDIUM=orange, LOW=yellow, INFO=blue).  Cells show short regulatory
+    tags (§ references, ATT&CK IDs, article numbers) rather than truncated
+    prose, making the heatmap scannable at a glance.
 
     Parameters
     ----------
@@ -474,56 +531,82 @@ def render_regulatory_heatmap(
         "—":      "#E0E0E0",
     }
 
-    frameworks = ["nist_ai_600_1", "mitre_atlas", "owasp_llm", "eu_ai_act"]
-    labels     = ["NIST AI 600-1", "MITRE ATLAS", "OWASP LLM Top 10", "EU AI Act"]
+    frameworks  = ["nist_ai_600_1", "mitre_atlas", "owasp_llm", "eu_ai_act"]
+    col_headers = ["NIST AI 600-1", "MITRE ATLAS", "OWASP LLM\nTop 10", "EU AI Act"]
+    # Short-tag extractor per column
+    _tagfn = [_nist_tags, _mitre_tags, _owasp_tags, _eu_tags]
 
-    # Build row labels (attack name + severity badge)
+    # Build row labels — attack + metric snapshot
     rows = []
     for _, r in reg_df.iterrows():
         atk  = r.get("attacks", "?")
         sev  = r.get("severity", "—")
         drop = r.get("acc_drop", float("nan"))
-        drop_str = f" ({drop:+.0%})" if not (isinstance(drop, float) and np.isnan(drop)) else ""
-        rows.append(f"{atk}{drop_str}  [{sev}]")
+        asr  = r.get("asr",      float("nan"))
+        if isinstance(drop, float) and np.isnan(drop):
+            metric = ""
+        else:
+            metric = f"  Δacc {drop:+.0%}"
+            if not (isinstance(asr, float) and np.isnan(asr)) and asr > 0:
+                metric += f"  ASR {asr:.0%}"
+        rows.append(f"{atk}{metric}  [{sev}]")
 
-    n_rows = len(rows)
-    height = figsize[1] if figsize[1] else max(3, n_rows * 0.65 + 1.5)
+    n_rows  = len(rows)
+    row_h   = 0.90           # cell height in data units
+    col_w   = 1.0
+    height  = figsize[1] if figsize[1] else max(4, n_rows * row_h * 1.2 + 2.0)
     fig, ax = plt.subplots(figsize=(figsize[0], height))
 
-    for col_i, col in enumerate(frameworks):
+    for col_i, (col, tagfn) in enumerate(zip(frameworks, _tagfn)):
         for row_i, (_, r) in enumerate(reg_df.iterrows()):
             sev  = r.get("severity", "—")
-            text = r.get(col, "")
-            has_content = bool(text and str(text).strip() and str(text) != "—")
-            cell_color = _sev_color.get(sev, "#E0E0E0") if has_content else _sev_color["—"]
+            text = str(r.get(col, ""))
+            has_content = bool(text.strip() and text != "—" and text != "nan")
+            cell_color  = _sev_color.get(sev, "#E0E0E0") if has_content else "#F5F5F5"
+            text_color  = "white" if sev in ("HIGH", "MEDIUM") else "#222222"
 
+            y0 = n_rows - row_i - row_h
             rect = plt.Rectangle(
-                (col_i, n_rows - row_i - 1), 1, 1,
-                linewidth=0.5, edgecolor="white",
-                facecolor=cell_color, alpha=0.85,
+                (col_i * col_w + 0.05, y0),
+                col_w - 0.10, row_h - 0.05,
+                linewidth=0, edgecolor="none",
+                facecolor=cell_color, alpha=0.90, zorder=2,
             )
             ax.add_patch(rect)
 
-            # Abbreviated cell text
-            snippet = str(text)[:38] + "…" if len(str(text)) > 38 else str(text)
-            ax.text(
-                col_i + 0.5, n_rows - row_i - 0.5, snippet,
-                ha="center", va="center", fontsize=6.5,
-                wrap=True, color="white" if sev in ("HIGH", "MEDIUM") else "#333333",
-            )
+            # Extract short tags for this cell
+            tag_text = tagfn(text) if has_content else ""
+            if tag_text:
+                ax.text(
+                    col_i * col_w + col_w / 2,
+                    y0 + (row_h - 0.05) / 2,
+                    tag_text,
+                    ha="center", va="center",
+                    fontsize=7.5, fontweight="semibold",
+                    color=text_color, zorder=3,
+                    linespacing=1.4,
+                )
+
+    # Grid lines between rows
+    for i in range(n_rows + 1):
+        ax.axhline(n_rows - i, color="#CCCCCC", linewidth=0.4, zorder=1)
+    for j in range(len(frameworks) + 1):
+        ax.axvline(j * col_w, color="#CCCCCC", linewidth=0.4, zorder=1)
 
     # Axes formatting
-    ax.set_xlim(0, len(frameworks))
+    ax.set_xlim(0, len(frameworks) * col_w)
     ax.set_ylim(0, n_rows)
-    ax.set_xticks([i + 0.5 for i in range(len(frameworks))])
-    ax.set_xticklabels(labels, fontsize=9, fontweight="bold")
-    ax.set_yticks([n_rows - i - 0.5 for i in range(n_rows)])
-    ax.set_yticklabels(rows, fontsize=8)
-    ax.tick_params(axis="x", top=True, labeltop=True, bottom=False, labelbottom=False)
-    ax.tick_params(axis="y", left=True, right=False)
+    ax.set_xticks([i * col_w + col_w / 2 for i in range(len(frameworks))])
+    ax.set_xticklabels(col_headers, fontsize=10, fontweight="bold", linespacing=1.3)
+    ax.set_yticks([n_rows - i - row_h / 2 for i in range(n_rows)])
+    ax.set_yticklabels(rows, fontsize=8.5)
+    ax.tick_params(axis="x", top=True, labeltop=True, bottom=False, labelbottom=False,
+                   length=0, pad=6)
+    ax.tick_params(axis="y", left=True, right=False, length=0, pad=6)
+    ax.spines[:].set_visible(False)
     ax.set_title(
         "Regulatory Impact Heatmap — Findings from This Run",
-        fontsize=11, fontweight="bold", pad=14,
+        fontsize=12, fontweight="bold", pad=18,
     )
 
     legend_patches = [

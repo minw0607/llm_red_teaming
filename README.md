@@ -122,21 +122,22 @@ Results from Notebook 01 — **10 adversarial attacks** evaluated on 50 SST-2 sa
 | Attack | Level | Orig Acc | Attacked Acc | Acc Drop | ASR | Stealth | Risk Score |
 |---|---|---|---|---|---|---|---|
 | **NegationInjection** | structural | 100% | 88% | +12% | 12% | 0.936 | 0.1123 |
-| **StressTest** | sentence | 100% | 92% | +8% | 8% | 0.879 | 0.0703 |
 | **SemanticAttack** | semantic | 100% | 96% | +4% | 4% | 0.921 | 0.0368 |
-| **TextFooler** | word | 100% | 96% | +4% | 4% | 0.883 | 0.0353 |
+| **StressTest** | sentence | 100% | 96% | +4% | 4% | 0.879 | 0.0352 |
+| **TextFooler** | word | 100% | 96% | +4% | 4% | 0.863 | 0.0345 |
 | **BERTAttack** | word | 100% | 98% | +2% | 2% | 0.989 | 0.0198 |
-| **CheckList** | sentence | 100% | 98% | +2% | 2% | 0.816 | 0.0167 |
-| **DeepWordBug** | character | 100% | 98% | +2% | 2% | 0.821 | 0.0164 |
-| **TextBugger** | character | 100% | 98% | +2% | 2% | 0.814 | 0.0163 |
-| **Homoglyph** | structural | 100% | 100% | +0% | 0% | 0.825 | 0.0000 |
-| **BackTranslation** | structural | 98% | 100% | −2% | 0% | 0.912 | −0.0183 |
+| **DeepWordBug** | character | 100% | 98% | +2% | 2% | 0.830 | 0.0166 |
+| **TextBugger** | character | 100% | 98% | +2% | 2% | 0.825 | 0.0165 |
+| **Homoglyph** | structural | 100% | 98% | +2% | 2% | 0.825 | 0.0165 |
+| **CheckList** | sentence | 98% | 98% | 0% | 0% | 0.810 | 0.0000 |
+| **BackTranslation** | structural | 100% | 100% | 0% | 0% | 0.913 | 0.0000 |
 
 **Key findings:**
-- 🔴 **NegationInjection** is the top threat: 12% accuracy drop at 0.936 stealth — semantic-preserving but logically inverted
-- 🟠 **Structural attacks dominate** the high-stealth cluster: all three structural attacks score stealth > 0.82
-- ✅ **Homoglyph** produces no flips at this sample size — frontier models are resilient to Unicode substitution
-- ℹ️ **BackTranslation** slightly *improves* accuracy (−2% drop) — MarianMT normalises SST-2's pre-tokenised text, incidentally cleaning noise
+- 🔴 **NegationInjection** is the top threat: 12% accuracy drop at 0.936 stealth — logically inverted text that reads naturally
+- 🟠 **Word- and semantic-level attacks cluster at 4%**: SemanticAttack, StressTest, TextFooler — all in the danger zone (stealth ≥ 0.86)
+- 🟡 **All remaining attacks land at 2%**, including Homoglyph — 1 flip on a known decision-boundary sentence ("we root for clara and paul")
+- ℹ️ **BackTranslation stays at 0%** — MT output is more fluent than noisy pre-tokenised source; acts as data cleaning, not adversarial attack
+- 📊 **BERTAttack highest stealth** (0.989) — contextual substitutions are near-invisible; perplexity ratio 1.016 ≈ indistinguishable from original
 
 ### Notable Findings & Interpretations
 

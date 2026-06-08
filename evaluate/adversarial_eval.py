@@ -106,7 +106,13 @@ def run_all_attacks(
                 attacked = text
                 atk_pred = "error"
 
-            text_changed = (attacked != text)
+            # Normalise whitespace before comparing so that trailing-space
+            # differences (e.g. BERTAttack stripping a trailing space from
+            # SST-2's pre-tokenised text) are not counted as text changes.
+            def _norm(s: str) -> str:
+                import re
+                return re.sub(r"\s+", " ", s).strip()
+            text_changed = (_norm(attacked) != _norm(text))
 
             # ── semantic similarity (optional) ─────────────────────────────
             sem_sim: float | None = None
