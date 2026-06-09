@@ -71,7 +71,10 @@ llm_red_teaming/
 │   ├── 04_fairness_counterfactual.ipynb # Demographic swap  [📋]
 │   └── 05_nli_robustness.ipynb         # AdvGLUE + ANLI    [📋]
 │
-├── docs/images/                # Figures referenced in README
+├── docs/
+│   ├── images/                 # Figures referenced in README
+│   └── samples/                # Sample report outputs
+│       └── executive_summary_n872.html   # Redacted executive summary (n=872)
 ├── configs/                    # Experiment configuration files
 ├── results/                    # Output files (gitignored)
 ├── .env.example                # API key template
@@ -164,6 +167,7 @@ Notebook 01 auto-generates two business-facing outputs at the end of each run:
 - Judge LLM (same Azure-hosted model) receives all computed metrics and writes a plain-English narrative — numbers come from deterministic computation, not hallucination
 - Covers: overall risk verdict · key findings · attack methodology · regulatory obligations · prioritised recommendations
 - Saved as a **standalone HTML report** — open directly in a browser or share with leadership
+- 📄 **[View sample report →](docs/samples/executive_summary_n872.html)** *(n=872 full run, model name redacted)*
 
 ```python
 from evaluate import regulatory_report, render_regulatory_heatmap, generate_executive_summary
