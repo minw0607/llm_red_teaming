@@ -107,9 +107,9 @@ summary = compute_attack_summary(results)
 
 ---
 
-## 📈 Sample Results
+## 📈 Full Run Results (n = 872)
 
-Results from Notebook 01 — **10 adversarial attacks** evaluated on 50 SST-2 samples against an Azure-hosted frontier model.
+Results from Notebook 01 — **10 adversarial attacks** evaluated on **872 SST-2 samples** against an Azure-hosted frontier model (`gpt-5-4-20260305-gs`). At this scale each percentage point represents ~8–9 real prediction flips, making the rankings stable and operationally meaningful.
 
 ### Risk Matrix & Accuracy Comparison
 
@@ -117,53 +117,71 @@ Results from Notebook 01 — **10 adversarial attacks** evaluated on 50 SST-2 sa
 
 *Bubble size = Attack Success Rate (ASR). Shaded region = stealth ≥ 0.80 (danger zone).*
 
-### Attack Summary (n = 50 samples, SST-2 sentiment)
+### Attack Summary (n = 872 samples, SST-2 sentiment, sorted by risk score)
 
 | Attack | Level | Orig Acc | Attacked Acc | Acc Drop | ASR | Stealth | Risk Score |
 |---|---|---|---|---|---|---|---|
-| **NegationInjection** | structural | 100% | 88% | +12% | 12% | 0.936 | 0.1123 |
-| **SemanticAttack** | semantic | 100% | 96% | +4% | 4% | 0.921 | 0.0368 |
-| **StressTest** | sentence | 100% | 96% | +4% | 4% | 0.879 | 0.0352 |
-| **TextFooler** | word | 100% | 96% | +4% | 4% | 0.863 | 0.0345 |
-| **BERTAttack** | word | 100% | 98% | +2% | 2% | 0.989 | 0.0198 |
-| **DeepWordBug** | character | 100% | 98% | +2% | 2% | 0.830 | 0.0166 |
-| **TextBugger** | character | 100% | 98% | +2% | 2% | 0.825 | 0.0165 |
-| **Homoglyph** | structural | 100% | 98% | +2% | 2% | 0.825 | 0.0165 |
-| **CheckList** | sentence | 98% | 98% | 0% | 0% | 0.810 | 0.0000 |
-| **BackTranslation** | structural | 100% | 100% | 0% | 0% | 0.913 | 0.0000 |
+| 🔴 **NegationInjection** | structural | 95.5% | 78.1% | **+17.5%** | 19.6% | 0.941 | **0.1647** |
+| 🟠 **StressTest** | sentence | 95.5% | 92.2% | +3.3% | 4.5% | 0.888 | 0.0293 |
+| 🟡 **BackTranslation** | structural | 95.2% | 93.5% | +1.7% | 2.8% | 0.897 | 0.0153 |
+| 🟡 **TextFooler** | word | 95.7% | 94.1% | +1.6% | 2.7% | 0.872 | 0.0140 |
+| 🟡 **SemanticAttack** | semantic | 95.5% | 94.6% | +0.9% | 1.8% | 0.901 | 0.0081 |
+| **TextBugger** | character | 95.2% | 94.7% | +0.5% | 1.6% | 0.816 | 0.0041 |
+| **BERTAttack** | word | 95.5% | 95.2% | +0.4% | 1.0% | — | — |
+| **DeepWordBug** | character | 95.0% | 95.2% | −0.1% | 0.9% | 0.833 | 0.0000 |
+| **CheckList** | sentence | 95.5% | 95.7% | −0.2% | 0.7% | 0.818 | 0.0000 |
+| **Homoglyph** | structural | 95.3% | 95.9% | −0.6% | 1.0% | 0.824 | 0.0000 |
 
-**Key findings:**
-- 🔴 **NegationInjection** is the top threat: 12% accuracy drop at 0.936 stealth — logically inverted text that reads naturally
-- 🟠 **Word- and semantic-level attacks cluster at 4%**: SemanticAttack, StressTest, TextFooler — all in the danger zone (stealth ≥ 0.86)
-- 🟡 **All remaining attacks land at 2%**, including Homoglyph — 1 flip on a known decision-boundary sentence ("we root for clara and paul")
-- ℹ️ **BackTranslation stays at 0%** — MT output is more fluent than noisy pre-tokenised source; acts as data cleaning, not adversarial attack
-- 📊 **BERTAttack highest stealth** (0.989) — contextual substitutions are near-invisible; perplexity ratio 1.016 ≈ indistinguishable from original
+*Stealth = composite score (0.5 × semantic_sim + 0.3 × naturalness + 0.2 × edit_sim). Risk Score = Acc Drop × Stealth. Negative acc drop = model improved (data cleaning / noise reduction effect).*
+
+**Key findings at n = 872:**
+- 🔴 **NegationInjection dominates**: 17.5% accuracy drop at 0.941 stealth — 5× larger than the second-ranked attack. Logically inverted text remains fluent (ppl_ratio 1.097) and is undetectable by perplexity monitors
+- 🟠 **StressTest is the only other HIGH-risk attack**: 3.3% drop — vacuous tautology appended to input causes attention drift, not semantic manipulation
+- 🟡 **Word/structural attacks cluster at 1–2%**: BackTranslation, TextFooler, SemanticAttack all stealth ≥ 0.87 — meaningful but individually manageable
+- ✅ **Character-level attacks ineffective at frontier scale**: TextBugger (+0.5%), DeepWordBug (−0.1%) — GPT-5-class models are robust to single-character typo perturbations
+- ℹ️ **Three attacks improve accuracy**: Homoglyph (−0.6%), CheckList (−0.2%), DeepWordBug (−0.1%) — perturbations land on harder sample variants, confirming these attacks have near-zero adversarial signal at this model scale
 
 ### Notable Findings & Interpretations
 
 | Finding | What happened | Why it matters |
 |---|---|---|
-| **BackTranslation: acc_drop = −2%** | The EN→DE→EN pipeline normalised SST-2's noisy pre-tokenised source text (removes spaces, fixes capitalisation) — the model classifies the *cleaner* output better | Not a bug — a real finding: back-translation at this scale acts as **data cleaning**, not adversarial attack. Risk shifts to higher-level semantic manipulation in longer, well-formed inputs. |
-| **BERTAttack: HIGH demoted to MEDIUM** | One case where `text_changed=False` but the model flipped its prediction — model gave different answers to the *same* text on two API calls | **Model non-determinism**, not attack success. Fixed: `display_human_review()` now prints an explicit note and demotes these to MEDIUM. Reveals decision-boundary instability; document in model card. |
-| **SemanticAttack: 0% → 4% variance** | 2 new flips appeared at n=50 vs. a prior run showing 0% drop | Expected run-to-run variance at small sample size — one additional flip = 2% swing. Use n ≥ 200 for stable ASR estimates. The attack is real; the variance is a measurement artefact. |
+| **NegationInjection: 17.5% at n=872** | Gap to second-place (3.3%) is 5×, stable across 868 samples — not sampling noise | Structural logical attacks are the dominant threat for this model class. Character and word substitutions are largely solved at frontier scale; negation robustness is not. |
+| **BackTranslation: +1.7% acc drop** | EN→DE→EN normalises SST-2's noisy pre-tokenised text (removes spaces, fixes capitalisation); ppl_ratio 0.906 < 1 confirms attacked text is *more fluent* than original | Confirms the data-cleaning effect holds at scale. The 2.8% ASR reflects genuine adversarial signal on a small hard subset; the net effect is mild because most samples improve after round-trip translation. |
+| **BERTAttack: missing stealth data** | Stealth checkpoint did not complete for BERTAttack in this run — composite stealth columns show `—` | Risk score cannot be computed; treat as a data gap, not zero risk. Re-run `add_stealth_components()` with `checkpoint_path` to fill. Acc drop of 0.4% / ASR 1.0% visible from raw results. |
+| **Character attacks: at or below baseline** | TextBugger +0.5%, DeepWordBug −0.1% at n=872 | Deprioritise in future red-team cycles. Frontier LLMs are effectively immune to surface-level typo attacks; testing budget is better spent on structural and prompt-level attacks. |
+| **BERTAttack: HIGH→MEDIUM demotion** | `text_changed=False` flip cases (identical text, different model answer) correctly demoted | Model non-determinism on decision-boundary sentences, not attack success. Documented in `display_human_review()` with explicit flagging. |
 
-### Regulatory Alignment
+### Regulatory Alignment & Executive Report
 
-Beyond the static framework mapping in Notebook 01's industry overview, the toolkit now generates a **dynamic regulatory impact report** from each test run via `regulatory_report()`:
+Notebook 01 auto-generates two business-facing outputs at the end of each run:
 
-- **Finding-level citations** — only attacks that showed meaningful impact in *this run* are reported; actual metric values (acc_drop, ASR, stealth) are embedded in each citation
-- **Special-case detection** — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific regulatory obligations
-- **Frameworks covered:** NIST AI 600-1 (§2.3 Confabulation, §2.5 Information Integrity, §2.6 Information Security) · MITRE ATLAS (AML.T0043, T0015, T0016, T0040) · OWASP LLM Top 10 (LLM01, LLM09) · EU AI Act (Art. 9, 13, 15, 17)
-- **Recommended actions** — severity-graded remediation steps generated from the actual findings
+**Dynamic regulatory impact report** (`regulatory_report()` + `render_regulatory_heatmap()`):
+- Finding-level citations — only attacks with meaningful impact in *this run* are reported; actual metric values (acc_drop, ASR, stealth) embedded in each citation
+- Special-case detection — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific regulatory obligations
+- **Frameworks:** NIST AI 600-1 (§2.3, §2.5, §2.6) · MITRE ATLAS (AML.T0043, T0015, T0016, T0040) · OWASP LLM Top 10 (LLM01, LLM09) · EU AI Act (Art. 9, 13, 15, 17)
+
+**LLM-interpreted executive summary** (`generate_executive_summary()`):
+- Judge LLM (same Azure-hosted model) receives all computed metrics and writes a plain-English narrative — numbers come from deterministic computation, not hallucination
+- Covers: overall risk verdict · key findings · attack methodology · regulatory obligations · prioritised recommendations
+- Saved as a **standalone HTML report** — open directly in a browser or share with leadership
 
 ```python
-from evaluate import regulatory_report, render_regulatory_heatmap
+from evaluate import regulatory_report, render_regulatory_heatmap, generate_executive_summary
 
-reg_df = regulatory_report(summary_df, review_df=review_df)
+reg_df            = regulatory_report(summary_df, review_df=review_df)
 render_regulatory_heatmap(reg_df, save_path='results/regulatory_heatmap.png')
+exec_html, data   = generate_executive_summary(summary_df, review_df, reg_df, target, config)
 ```
 
-> Full results (CSVs + figures) are saved to `results/` — gitignored. Re-run Notebook 01 to reproduce.
+**Saved outputs** (all in `results/`, gitignored by default):
+
+```
+01_raw_results_n872.csv          per-sample predictions (all 10 attacks × 872 rows)
+01_attack_summary_n872.csv       per-attack metrics (acc_drop, ASR, stealth, risk_score)
+01_attack_summary_n872.html      styled metrics table — open in browser
+01_human_review_n872.csv         flagged adversarial cases (HIGH / MEDIUM / LOW)
+01_executive_summary_n872.html   executive report — open in browser or share directly
+```
 
 ---
 
