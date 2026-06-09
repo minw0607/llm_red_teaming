@@ -314,14 +314,21 @@ def _call_llm(target, system_prompt: str, user_prompt: str) -> dict:
     """
     Call target.complete() with a generous token budget and parse the JSON.
 
-    Uses ``max_completion_tokens=2000`` regardless of the target instance's
-    default (which is tuned for short sentiment probes at 512 tokens).
+    Temporarily raises ``target.max_completion_tokens`` to
+    ``_JUDGE_MAX_TOKENS`` for this call, then restores the original value.
+    This works regardless of whether the target instance has the per-call
+    kwarg override (avoids breakage when the target was instantiated before
+    a hot-reload of openai_compatible.py).
     """
-    raw = target.complete(
-        user_prompt=user_prompt,
-        system_prompt=system_prompt,
-        max_completion_tokens=_JUDGE_MAX_TOKENS,
-    )
+    original_limit = getattr(target, "max_completion_tokens", 512)
+    target.max_completion_tokens = _JUDGE_MAX_TOKENS
+    try:
+        raw = target.complete(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+        )
+    finally:
+        target.max_completion_tokens = original_limit
     # Strip markdown fences if the model wrapped in ```json ... ```
     clean = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
     clean = re.sub(r"```\s*$", "", clean.strip(), flags=re.MULTILINE)
