@@ -238,16 +238,100 @@ def _build_prompt(
 
 # ── LLM call + JSON parse ──────────────────────────────────────────────────────
 
+def _repair_truncated_json(raw: str) -> dict:
+    """
+    Best-effort recovery for truncated JSON.
+
+    Strategy
+    --------
+    1. Find the last complete top-level key-value pair by walking backwards
+       until json.loads() succeeds on the truncated object.
+    2. Close any open string, then close open arrays/objects.
+    3. If still unparseable, re-raise.
+    """
+    # Close an open string if the last char suggests truncation inside a string
+    s = raw.rstrip()
+    # Count unescaped quotes to decide if we're inside a string
+    def _in_string(txt: str) -> bool:
+        count = 0
+        escaped = False
+        for ch in txt:
+            if escaped:
+                escaped = False
+                continue
+            if ch == "\\":
+                escaped = True
+            elif ch == '"':
+                count += 1
+        return count % 2 == 1
+
+    # Close open string
+    if _in_string(s):
+        s = s + '"'
+
+    # Remove trailing comma before closing
+    s = re.sub(r",\s*$", "", s.rstrip())
+
+    # Close open arrays then objects
+    # Track opening brackets/braces
+    depth_obj = 0
+    depth_arr = 0
+    in_str = False
+    esc = False
+    for ch in s:
+        if esc:
+            esc = False
+            continue
+        if ch == "\\" and in_str:
+            esc = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch == "{":
+            depth_obj += 1
+        elif ch == "}":
+            depth_obj -= 1
+        elif ch == "[":
+            depth_arr += 1
+        elif ch == "]":
+            depth_arr -= 1
+
+    s += "]" * max(0, depth_arr)
+    s += "}" * max(0, depth_obj)
+
+    return json.loads(s)
+
+
+# ── LLM call + JSON parse ──────────────────────────────────────────────────────
+
+_JUDGE_MAX_TOKENS = 2000   # generous budget for the multi-section JSON response
+
+
 def _call_llm(target, system_prompt: str, user_prompt: str) -> dict:
-    """Call target.complete() and parse the JSON response."""
+    """
+    Call target.complete() with a generous token budget and parse the JSON.
+
+    Uses ``max_completion_tokens=2000`` regardless of the target instance's
+    default (which is tuned for short sentiment probes at 512 tokens).
+    """
     raw = target.complete(
         user_prompt=user_prompt,
         system_prompt=system_prompt,
+        max_completion_tokens=_JUDGE_MAX_TOKENS,
     )
     # Strip markdown fences if the model wrapped in ```json ... ```
     clean = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
     clean = re.sub(r"```\s*$", "", clean.strip(), flags=re.MULTILINE)
-    return json.loads(clean.strip())
+    clean = clean.strip()
+
+    try:
+        return json.loads(clean)
+    except json.JSONDecodeError:
+        # Attempt partial recovery before falling back to the template
+        return _repair_truncated_json(clean)
 
 
 # ── HTML renderer ──────────────────────────────────────────────────────────────

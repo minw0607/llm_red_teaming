@@ -156,6 +156,7 @@ class OpenAICompatibleTarget:
         user_prompt: str,
         system_prompt: str = "You are a helpful assistant.",
         model: str | None = None,
+        max_completion_tokens: int | None = None,
     ) -> str:
         """
         Send a chat completion request and return the response text.
@@ -171,6 +172,10 @@ class OpenAICompatibleTarget:
             System message prepended to the conversation.
         model : str | None
             Override the instance-level model for this call only.
+        max_completion_tokens : int | None
+            Override the instance-level ``max_completion_tokens`` for this
+            call only.  Useful for judge/summary calls that need more tokens
+            than the default (512) used for short sentiment probes.
 
         Returns
         -------
@@ -193,7 +198,7 @@ class OpenAICompatibleTarget:
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_prompt},
             ],
-            "max_completion_tokens": self.max_completion_tokens,
+            "max_completion_tokens": max_completion_tokens or self.max_completion_tokens,
         }
         if self.temperature is not None:
             request_kwargs["temperature"] = self.temperature

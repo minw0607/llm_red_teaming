@@ -20,6 +20,7 @@ from .plots import plot_adversarial_summary, DEFAULT_LEVEL_COLORS
 from .display import display_human_review
 from .regulatory import map_to_regulations, regulatory_report, render_regulatory_heatmap
 from .executive import generate_executive_summary, render_executive_html
+from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
     # Core evaluation pipeline
@@ -45,6 +46,9 @@ __all__ = [
     # Executive summary
     "generate_executive_summary",
     "render_executive_html",
+    # Sanity check
+    "sanity_check",
+    "render_sanity_html",
     # Legacy / jailbreak helpers
     "accuracy_drop",
     "attack_success_rate",
