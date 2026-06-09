@@ -112,7 +112,7 @@ summary = compute_attack_summary(results)
 
 ## 📈 Full Run Results (n = 872)
 
-Results from Notebook 01 — **10 adversarial attacks** evaluated on **872 SST-2 samples** against an Azure-hosted frontier model (`gpt-5-4-20260305-gs`). At this scale each percentage point represents ~8–9 real prediction flips, making the rankings stable and operationally meaningful.
+Results from Notebook 01 — **10 adversarial attacks** evaluated on **872 SST-2 samples** against an Azure-hosted GPT-5-4 model. At this scale each percentage point represents ~8–9 real prediction flips, making the rankings stable and operationally meaningful.
 
 ### Risk Matrix & Accuracy Comparison
 
@@ -154,20 +154,34 @@ Results from Notebook 01 — **10 adversarial attacks** evaluated on **872 SST-2
 | **Character attacks: at or below baseline** | TextBugger +0.5%, DeepWordBug −0.1% at n=872 | Deprioritise in future red-team cycles. Frontier LLMs are effectively immune to surface-level typo attacks; testing budget is better spent on structural and prompt-level attacks. |
 | **BERTAttack: HIGH→MEDIUM demotion** | `text_changed=False` flip cases (identical text, different model answer) correctly demoted | Model non-determinism on decision-boundary sentences, not attack success. Documented in `display_human_review()` with explicit flagging. |
 
-### Regulatory Alignment & Executive Report
+### Executive Security Report
 
-Notebook 01 auto-generates two business-facing outputs at the end of each run:
+Notebook 01 auto-generates a **business-level security assessment report** (Step 10) using a judge LLM to interpret findings into plain-English risk assessments, regulatory citations, and prioritised recommendations.
 
-**Dynamic regulatory impact report** (`regulatory_report()` + `render_regulatory_heatmap()`):
+[![Executive Summary Report](docs/images/nb01_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)
+
+<div align="center">
+
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)**  ·  [Raw HTML](docs/samples/executive_summary_n872.html) *(n=872 full run · model name redacted)*
+
+</div>
+
+**What the report contains:**
+- **Overall risk verdict** and risk level (LOW / MEDIUM / HIGH / CRITICAL) — written in plain English for a non-technical leadership audience
+- **Key findings** — each with severity badge, headline, and 2–3 sentence business-impact explanation
+- **Attack results table** — all 10 attacks with acc drop, ASR, stealth, and risk score
+- **Attack methodology** — what each perturbation level simulates in plain English
+- **Regulatory obligations** — NIST AI 600-1 · MITRE ATLAS · OWASP LLM Top 10 · EU AI Act citations grounded in actual findings
+- **Prioritised recommendations** — numbered action items with rationale tied to specific data
+
+> Numbers in the report come from deterministic metric computation. The judge LLM writes only the *narrative* — it cannot hallucinate the metrics.
+
+### Regulatory Alignment
+
+**Dynamic regulatory impact mapping** (`regulatory_report()` + `render_regulatory_heatmap()`):
 - Finding-level citations — only attacks with meaningful impact in *this run* are reported; actual metric values (acc_drop, ASR, stealth) embedded in each citation
-- Special-case detection — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific regulatory obligations
+- Special-case detection — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific obligations
 - **Frameworks:** NIST AI 600-1 (§2.3, §2.5, §2.6) · MITRE ATLAS (AML.T0043, T0015, T0016, T0040) · OWASP LLM Top 10 (LLM01, LLM09) · EU AI Act (Art. 9, 13, 15, 17)
-
-**LLM-interpreted executive summary** (`generate_executive_summary()`):
-- Judge LLM (same Azure-hosted model) receives all computed metrics and writes a plain-English narrative — numbers come from deterministic computation, not hallucination
-- Covers: overall risk verdict · key findings · attack methodology · regulatory obligations · prioritised recommendations
-- Saved as a **standalone HTML report** — open directly in a browser or share with leadership
-- 📄 **[View sample report →](docs/samples/executive_summary_n872.html)** *(n=872 full run, model name redacted)*
 
 ```python
 from evaluate import regulatory_report, render_regulatory_heatmap, generate_executive_summary
