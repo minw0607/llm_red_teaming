@@ -202,6 +202,7 @@ def add_stealth_components(
     ppl_model=None,
     ppl_tokenizer=None,
     weights: tuple[float, float, float] = DEFAULT_WEIGHTS,
+    checkpoint_path: str | None = None,
 ) -> pd.DataFrame:
     """
     Enrich a ``run_all_attacks()`` results DataFrame with composite stealth
@@ -221,85 +222,125 @@ def add_stealth_components(
     results_df : pd.DataFrame
         Long-form output from ``run_all_attacks()``.
     ppl_model : GPT2LMHeadModel | None
-        If None, perplexity columns are filled with NaN (edit_sim and
-        composite_stealth using only sem_sim + edit_sim with renormalised
-        weights α'=0.7, γ'=0.3).
+        If None, perplexity columns are filled with NaN and composite stealth
+        uses only sem_sim + edit_sim with renormalised weights (α'=0.7, γ'=0.3).
     ppl_tokenizer : GPT2TokenizerFast | None
         Required when ppl_model is provided.
     weights : tuple
-        (α, β, γ) for (sem_sim, naturalness, edit_sim).
+        (α, β, γ) for (sem_sim, naturalness, edit_sim).  Default (0.5, 0.3, 0.2).
+    checkpoint_path : str | None
+        Path to save intermediate results after each attack group.
+        Enables resume-on-restart for large n.  Example:
+        ``"../results/01_stealth_ckpt_n872.csv"``
 
     Returns
     -------
     pd.DataFrame
         Copy of results_df with stealth component columns appended.
+
+    Performance notes (n=872, 10 attacks)
+    ---------------------------------------
+    * ppl_original is computed once per unique source sentence (~872 calls)
+      rather than once per row (~8,720 calls) — a 10× speedup on that pass.
+    * ppl_attacked is computed for changed rows only (~6,000–7,000 calls).
+    * gc.collect() is called after each attack group to release memory.
     """
-    df = results_df.copy()
+    import gc
+    import os
+    from tqdm.auto import tqdm
+
+    df      = results_df.copy()
     use_ppl = (ppl_model is not None) and (ppl_tokenizer is not None)
 
-    ppl_orig_col  = []
-    ppl_atk_col   = []
-    ppl_ratio_col = []
-    nat_col       = []
-    edit_col      = []
-    comp_col      = []
-
-    # Renormalised weights when perplexity not available
+    # Renormalised weights when perplexity unavailable
     α_np = weights[0] / (weights[0] + weights[2])
     γ_np = weights[2] / (weights[0] + weights[2])
 
-    from tqdm.auto import tqdm
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Stealth components"):
-        orig    = row["original_text"]
-        attacked = row["attacked_text"]
-        changed  = row.get("text_changed", orig != attacked)
-        sem_sim  = row.get("semantic_sim", float("nan"))
-        if sem_sim is None:
-            sem_sim = float("nan")
+    # Initialise output columns with NaN
+    for col in ("ppl_original", "ppl_attacked", "ppl_ratio",
+                "naturalness", "edit_sim", "composite_stealth"):
+        df[col] = float("nan")
 
-        if not changed:
-            # Unchanged text — all components are perfect
-            ppl_orig_col.append(float("nan"))
-            ppl_atk_col.append(float("nan"))
-            ppl_ratio_col.append(float("nan"))
-            nat_col.append(float("nan"))
-            edit_col.append(float("nan"))
-            comp_col.append(float("nan"))
+    # ── Checkpoint: reload already-processed attacks ──────────────────────────
+    completed_attacks: set[str] = set()
+    if checkpoint_path and os.path.exists(checkpoint_path):
+        try:
+            ckpt = pd.read_csv(checkpoint_path)
+            stealth_cols = [c for c in ("ppl_original", "ppl_attacked", "ppl_ratio",
+                                        "naturalness", "edit_sim", "composite_stealth")
+                            if c in ckpt.columns]
+            completed_attacks = set(ckpt["attack"].unique())
+            print(f"  📂 Stealth checkpoint: {sorted(completed_attacks)} already done — skipping")
+            # Patch stealth columns from checkpoint for completed attacks
+            ckpt_mask = ckpt["attack"].isin(completed_attacks)
+            df_mask   = df["attack"].isin(completed_attacks)
+            for col in stealth_cols:
+                df.loc[df_mask, col] = ckpt.loc[ckpt_mask, col].values
+        except Exception as e:
+            print(f"  ⚠️  Could not read stealth checkpoint ({e}) — recomputing all.")
+
+    # ── Deduplicate ppl_original across attacks ───────────────────────────────
+    # Source sentences repeat once per attack (n × num_attacks rows total).
+    # Computing ppl_original per-row is (num_attacks)× more work than needed.
+    ppl_orig_cache: dict[str, float] = {}
+    if use_ppl:
+        pending_mask  = ~df["attack"].isin(completed_attacks)
+        changed_mask  = df["text_changed"].fillna(False).astype(bool)
+        unique_texts  = df.loc[pending_mask & changed_mask, "original_text"].unique()
+        print(f"  📊 Pre-computing ppl_original for {len(unique_texts):,} unique source texts "
+              f"(shared across all remaining attacks)…")
+        for txt in tqdm(unique_texts, desc="ppl_original cache", leave=False):
+            ppl_orig_cache[txt] = compute_perplexity(txt, ppl_model, ppl_tokenizer)
+        print(f"  ✅ ppl_original cache ready ({len(ppl_orig_cache):,} entries)")
+
+    # ── Process each attack group ─────────────────────────────────────────────
+    for attack_name in df["attack"].unique():
+        if attack_name in completed_attacks:
             continue
 
-        # Edit similarity (always computed — no model needed)
-        esim = edit_similarity(orig, attacked)
+        mask  = df["attack"] == attack_name
+        group = df[mask]
+        n_changed = int(group["text_changed"].fillna(False).sum())
+        print(f"\n  ── {attack_name}  ({mask.sum()} rows, {n_changed} changed) ──")
 
-        if use_ppl:
-            ppl_o = compute_perplexity(orig,    ppl_model, ppl_tokenizer)
-            ppl_a = compute_perplexity(attacked, ppl_model, ppl_tokenizer)
-            components = composite_stealth_score(sem_sim, ppl_o, ppl_a, esim, weights)
-            ppl_orig_col.append(round(ppl_o, 4) if not math.isnan(ppl_o) else float("nan"))
-            ppl_atk_col.append( round(ppl_a, 4) if not math.isnan(ppl_a) else float("nan"))
-            ppl_ratio_col.append(components["ppl_ratio"])
-            nat_col.append(components["naturalness"])
-        else:
-            ppl_orig_col.append(float("nan"))
-            ppl_atk_col.append(float("nan"))
-            ppl_ratio_col.append(float("nan"))
-            nat_col.append(float("nan"))
-            # Composite without perplexity: renormalise to (α', γ') on sem+edit
-            if math.isnan(sem_sim):
-                comp_val = float("nan")
+        for row_idx, row in tqdm(group.iterrows(), total=len(group),
+                                 desc=attack_name, leave=False):
+            changed = bool(row.get("text_changed", False))
+            if not changed:
+                continue
+
+            orig     = str(row["original_text"])
+            attacked = str(row["attacked_text"])
+            sem_sim  = row.get("semantic_sim", float("nan"))
+            if sem_sim is None:
+                sem_sim = float("nan")
+
+            esim = edit_similarity(orig, attacked)
+
+            if use_ppl:
+                ppl_o = ppl_orig_cache.get(orig, float("nan"))
+                ppl_a = compute_perplexity(attacked, ppl_model, ppl_tokenizer)
+                comps = composite_stealth_score(sem_sim, ppl_o, ppl_a, esim, weights)
+                df.at[row_idx, "ppl_original"]     = round(ppl_o, 4) if not math.isnan(ppl_o) else float("nan")
+                df.at[row_idx, "ppl_attacked"]      = round(ppl_a, 4) if not math.isnan(ppl_a) else float("nan")
+                df.at[row_idx, "ppl_ratio"]         = comps["ppl_ratio"]
+                df.at[row_idx, "naturalness"]       = comps["naturalness"]
+                df.at[row_idx, "edit_sim"]          = round(esim, 4)
+                df.at[row_idx, "composite_stealth"] = comps["composite"]
             else:
-                comp_val = round(α_np * sem_sim + γ_np * esim, 4)
-            comp_col.append(comp_val)
-            edit_col.append(round(esim, 4))
-            continue  # skip the block below
+                comp_val = (
+                    round(α_np * float(sem_sim) + γ_np * esim, 4)
+                    if not math.isnan(float(sem_sim)) else float("nan")
+                )
+                df.at[row_idx, "edit_sim"]          = round(esim, 4)
+                df.at[row_idx, "composite_stealth"] = comp_val
 
-        edit_col.append(round(esim, 4))
-        comp_col.append(components["composite"])
+        # Save checkpoint and free memory after each attack group
+        if checkpoint_path:
+            os.makedirs(os.path.dirname(os.path.abspath(checkpoint_path)), exist_ok=True)
+            df.to_csv(checkpoint_path, index=False)
+            print(f"  💾 Stealth checkpoint saved → {checkpoint_path}")
 
-    df["ppl_original"]     = ppl_orig_col
-    df["ppl_attacked"]     = ppl_atk_col
-    df["ppl_ratio"]        = ppl_ratio_col
-    df["naturalness"]      = nat_col
-    df["edit_sim"]         = edit_col
-    df["composite_stealth"] = comp_col
+        gc.collect()
 
     return df
