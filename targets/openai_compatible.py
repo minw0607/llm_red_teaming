@@ -46,7 +46,7 @@ def _is_azure(base_url: str | None, api_version: str | None = None) -> bool:
     2. ``azure.com`` anywhere in the URL
     3. Custom endpoint (not api.openai.com) AND api_version is set.
        This catches Azure APIM gateways at arbitrary domains
-       (e.g. atlas.protiviti.com) which still require the Azure client's
+       (e.g. mycompany.openai.azure.com) which still require the Azure client's
        URL pattern: /openai/deployments/{model}/chat/completions?api-version=…
 
     Standard OpenAI / Groq / Together / Ollama never need api_version,
