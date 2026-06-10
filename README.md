@@ -34,6 +34,8 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 💉 **Prompt Injection** | 🔜 Next | [↓ jump](#-prompt-injection-notebook-03) | — |
 | ⚖️ **Fairness and NLI Robustness** | 📋 Planned | [↓ jump](#-fairness-and-nli-robustness-notebooks-0405) | — |
 
+📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
+
 ---
 
 ## 🗂️ Repository Structure
@@ -84,6 +86,8 @@ llm_red_teaming/
 ├── docs/                       # Per-workstream results & deep dives
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
 │   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
+│   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
+│   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
 │   └── samples/                # Sample report outputs
 │       └── executive_summary_n872.html   # Redacted executive summary (n=872)

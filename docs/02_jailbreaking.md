@@ -60,7 +60,7 @@ Binary ASR also undercounts *partial compliance* (e.g. "I can't help, but here's
 | WildJailbreak | ~5,700 | 📋 Planned | Real-world adversarial diversity beyond curated categories |
 | Custom / vertical | Variable | 📋 Engagement-level | Deployment-specific threat model (finance, healthcare, legal) |
 
-See [dataset_strategy.md](dataset_strategy.md) *(planned)* for how to select test sets for real engagements.
+See [dataset_strategy.md](dataset_strategy.md) for how to select test sets for real engagements.
 
 ---
 
