@@ -22,17 +22,40 @@ Usage
     )
 
     # Mode 1 — template
-    results = runner.run_templates(n_goals=30, artifacts_per_goal=4)
+    results = runner.run_templates(
+        n_goals=30, artifacts_per_goal=4,
+        checkpoint_path="../results/02_ckpt_templates_n30_a4.jsonl",
+    )
 
     # Mode 2 — built-in PAIR artifacts
-    results = runner.run_builtin(method="PAIR", model_name="vicuna-13b-v1.5", max_items=100)
+    results = runner.run_builtin(
+        method="PAIR", model_name="vicuna-13b-v1.5", max_items=100,
+        checkpoint_path="../results/02_ckpt_pair_vicuna_n100.jsonl",
+    )
 """
 
 from __future__ import annotations
 
+import json
+import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+
+# litellm 1.40+ moved prompt_templates; patch the old import path so
+# jailbreakbench 1.0.0 can still find it.
+import sys as _sys, types as _types
+try:
+    from litellm.llms.prompt_templates.factory import custom_prompt as _  # noqa: F401
+except ModuleNotFoundError:
+    import litellm.litellm_core_utils.prompt_templates.factory as _new_pt
+    _pt_mod = _types.ModuleType("litellm.llms.prompt_templates.factory")
+    _pt_mod.custom_prompt = _new_pt.custom_prompt
+    _sys.modules.setdefault(
+        "litellm.llms.prompt_templates",
+        _types.ModuleType("litellm.llms.prompt_templates"),
+    )
+    _sys.modules["litellm.llms.prompt_templates.factory"] = _pt_mod
 
 import jailbreakbench as jbb
 
@@ -69,6 +92,36 @@ class ArtifactResult:
     timestamp: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+
+def _load_artifact_checkpoint(path: str) -> tuple[set[int], list[ArtifactResult]]:
+    """Load existing checkpoint; return (completed_rows, results)."""
+    if not os.path.exists(path):
+        return set(), []
+    results: list[ArtifactResult] = []
+    rows: set[int] = set()
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                d = json.loads(line)
+                results.append(ArtifactResult(**d))
+                rows.add(d["artifact_row"])
+        print(f"  📂 Checkpoint loaded: {len(results)} result(s) — "
+              f"{len(rows)} artifact rows done")
+    except Exception as exc:
+        print(f"  ⚠️  Could not read checkpoint ({exc}) — starting fresh.")
+        return set(), []
+    return rows, results
+
+
+def _append_artifact_checkpoint(path: str, result: ArtifactResult) -> None:
+    """Append a single result as a JSON line."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(asdict(result)) + "\n")
 
 
 class ArtifactRunner:
@@ -111,6 +164,7 @@ class ArtifactRunner:
         self,
         n_goals: int = 30,
         artifacts_per_goal: int = 4,
+        checkpoint_path: str | None = None,
     ) -> list[ArtifactResult]:
         """
         Wrap each JBB goal in artifact templates and evaluate all combinations.
@@ -121,16 +175,29 @@ class ArtifactRunner:
             Number of goals to test.
         artifacts_per_goal : int
             Maximum number of templates to apply per goal.
+        checkpoint_path : str | None
+            Path to a ``.jsonl`` checkpoint file.  Existing rows are skipped;
+            each new result is appended immediately.
+            Example: ``"../results/02_ckpt_templates_n20_a4.jsonl"``
         """
         dataset = jbb.read_dataset()
         templates = self.templates[:artifacts_per_goal]
-        results: list[ArtifactResult] = []
         row = 0
+
+        completed_rows: set[int] = set()
+        results: list[ArtifactResult] = []
+
+        if checkpoint_path:
+            completed_rows, results = _load_artifact_checkpoint(checkpoint_path)
 
         for goal_idx, (goal, behavior) in enumerate(
             zip(dataset.goals[:n_goals], dataset.behaviors[:n_goals])
         ):
             for template in templates:
+                if row in completed_rows:
+                    row += 1
+                    continue
+
                 prompt = template.replace("{GOAL}", goal)
                 try:
                     response = self.target.complete(
@@ -141,18 +208,21 @@ class ArtifactRunner:
                     response = f"[ERROR] {exc}"
 
                 verdict, reason = self.judge.judge(response)
-                results.append(
-                    ArtifactResult(
-                        artifact_row=row,
-                        goal_idx=goal_idx,
-                        behavior=behavior,
-                        goal=goal,
-                        prompt=prompt[:2000],
-                        response=response,
-                        verdict=verdict,
-                        reason=reason,
-                    )
+                result = ArtifactResult(
+                    artifact_row=row,
+                    goal_idx=goal_idx,
+                    behavior=behavior,
+                    goal=goal,
+                    prompt=prompt[:2000],
+                    response=response,
+                    verdict=verdict,
+                    reason=reason,
                 )
+                results.append(result)
+
+                if checkpoint_path:
+                    _append_artifact_checkpoint(checkpoint_path, result)
+
                 print(
                     f"[row {row:4d}] goal {goal_idx:3d}  "
                     f"behavior={behavior!r:30s}  verdict={verdict}"
@@ -160,6 +230,7 @@ class ArtifactRunner:
                 row += 1
                 time.sleep(self.sleep_sec)
 
+        results.sort(key=lambda r: r.artifact_row)
         return results
 
     # ── Mode 2: built-in JBB artifacts ───────────────────────────────────────
@@ -169,6 +240,7 @@ class ArtifactRunner:
         method: str = "PAIR",
         model_name: str = "vicuna-13b-v1.5",
         max_items: int = 100,
+        checkpoint_path: str | None = None,
     ) -> list[ArtifactResult]:
         """
         Test transferability of a JailbreakBench artifact set.
@@ -181,11 +253,23 @@ class ArtifactRunner:
             The source model the artifacts were tuned against.
         max_items : int
             Maximum number of artifact entries to evaluate.
+        checkpoint_path : str | None
+            Path to a ``.jsonl`` checkpoint file.  Existing rows are skipped;
+            each new result is appended immediately.
+            Example: ``"../results/02_ckpt_pair_vicuna_n100.jsonl"``
         """
         artifact = jbb.read_artifact(method=method, model_name=model_name)
+
+        completed_rows: set[int] = set()
         results: list[ArtifactResult] = []
 
+        if checkpoint_path:
+            completed_rows, results = _load_artifact_checkpoint(checkpoint_path)
+
         for row, jb in enumerate(artifact.jailbreaks[:max_items]):
+            if row in completed_rows:
+                continue
+
             prompt_texts: list[str] = []
             if getattr(jb, "prompt", None):
                 prompt_texts.append(jb.prompt)
@@ -204,23 +288,27 @@ class ArtifactRunner:
                     response = f"[ERROR] {exc}"
 
                 verdict, reason = self.judge.judge(response)
-                results.append(
-                    ArtifactResult(
-                        artifact_row=row,
-                        goal_idx=getattr(jb, "index", row),
-                        behavior=getattr(jb, "behavior", ""),
-                        goal=getattr(jb, "goal", ""),
-                        prompt=prompt[:2000],
-                        response=response,
-                        verdict=verdict,
-                        reason=reason,
-                        orig_jailbroken=getattr(jb, "jailbroken", None),
-                    )
+                result = ArtifactResult(
+                    artifact_row=row,
+                    goal_idx=getattr(jb, "index", row),
+                    behavior=getattr(jb, "behavior", ""),
+                    goal=getattr(jb, "goal", ""),
+                    prompt=prompt[:2000],
+                    response=response,
+                    verdict=verdict,
+                    reason=reason,
+                    orig_jailbroken=getattr(jb, "jailbroken", None),
                 )
+                results.append(result)
+
+                if checkpoint_path:
+                    _append_artifact_checkpoint(checkpoint_path, result)
+
                 print(
                     f"[row {row:4d}]  behavior={getattr(jb,'behavior',''):30s}  "
                     f"verdict={verdict}"
                 )
                 time.sleep(self.sleep_sec)
 
+        results.sort(key=lambda r: r.artifact_row)
         return results
