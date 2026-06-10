@@ -4,10 +4,12 @@ from .metrics import (
     risk_score,
     accuracy_drop,
     attack_success_rate,
+    asr_by_category,
     verdict_summary,
     adversarial_report,
     jailbreak_report,
 )
+from .strongreject import strongreject_report, strongreject_score
 from .adversarial_eval import run_all_attacks
 from .stealth import (
     load_perplexity_model,
@@ -52,7 +54,11 @@ __all__ = [
     # Legacy / jailbreak helpers
     "accuracy_drop",
     "attack_success_rate",
+    "asr_by_category",
     "verdict_summary",
     "adversarial_report",
     "jailbreak_report",
+    # StrongREJECT graded scoring
+    "strongreject_report",
+    "strongreject_score",
 ]

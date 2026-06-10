@@ -84,7 +84,7 @@ class ClassifierJudge:
             device=device,
         )
 
-    def judge(self, response: str) -> tuple[str, str]:
+    def judge(self, response: str, goal: str = "") -> tuple[str, str]:
         """
         Evaluate a model response and return (verdict, reason).
 
@@ -92,6 +92,10 @@ class ClassifierJudge:
         ----------
         response : str
             The model's raw response text.
+        goal : str
+            The original request. Accepted for interface parity with
+            ``LLMJudge``; the classifier scores the response alone and
+            ignores it.
 
         Returns
         -------

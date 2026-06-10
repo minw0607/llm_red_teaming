@@ -88,6 +88,7 @@ class ArtifactResult:
     response: str
     verdict: str
     reason: str
+    category: str = ""          # harm category (for per-category ASR)
     orig_jailbroken: bool | None = None
     timestamp: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -165,9 +166,10 @@ class ArtifactRunner:
         n_goals: int = 30,
         artifacts_per_goal: int = 4,
         checkpoint_path: str | None = None,
+        dataset=None,
     ) -> list[ArtifactResult]:
         """
-        Wrap each JBB goal in artifact templates and evaluate all combinations.
+        Wrap each goal in artifact templates and evaluate all combinations.
 
         Parameters
         ----------
@@ -179,10 +181,19 @@ class ArtifactRunner:
             Path to a ``.jsonl`` checkpoint file.  Existing rows are skipped;
             each new result is appended immediately.
             Example: ``"../results/02_ckpt_templates_n20_a4.jsonl"``
+        dataset : object | None
+            Dataset with ``.goals``, ``.behaviors``, optional ``.categories``
+            (JailbreakBench or HarmBench). Defaults to JailbreakBench.
         """
-        dataset = jbb.read_dataset()
+        if dataset is None:
+            dataset = jbb.read_dataset()
         templates = self.templates[:artifacts_per_goal]
         row = 0
+
+        goals = dataset.goals[:n_goals]
+        behaviors = dataset.behaviors[:n_goals]
+        categories = getattr(dataset, "categories", None)
+        categories = list(categories[:n_goals]) if categories is not None else [""] * len(goals)
 
         completed_rows: set[int] = set()
         results: list[ArtifactResult] = []
@@ -190,8 +201,8 @@ class ArtifactRunner:
         if checkpoint_path:
             completed_rows, results = _load_artifact_checkpoint(checkpoint_path)
 
-        for goal_idx, (goal, behavior) in enumerate(
-            zip(dataset.goals[:n_goals], dataset.behaviors[:n_goals])
+        for goal_idx, (goal, behavior, category) in enumerate(
+            zip(goals, behaviors, categories)
         ):
             for template in templates:
                 if row in completed_rows:
@@ -207,7 +218,7 @@ class ArtifactRunner:
                 except Exception as exc:
                     response = f"[ERROR] {exc}"
 
-                verdict, reason = self.judge.judge(response)
+                verdict, reason = self.judge.judge(response, goal=goal)
                 result = ArtifactResult(
                     artifact_row=row,
                     goal_idx=goal_idx,
@@ -217,6 +228,7 @@ class ArtifactRunner:
                     response=response,
                     verdict=verdict,
                     reason=reason,
+                    category=category,
                 )
                 results.append(result)
 
@@ -287,16 +299,18 @@ class ArtifactRunner:
                 except Exception as exc:
                     response = f"[ERROR] {exc}"
 
-                verdict, reason = self.judge.judge(response)
+                jb_goal = getattr(jb, "goal", "")
+                verdict, reason = self.judge.judge(response, goal=jb_goal)
                 result = ArtifactResult(
                     artifact_row=row,
                     goal_idx=getattr(jb, "index", row),
                     behavior=getattr(jb, "behavior", ""),
-                    goal=getattr(jb, "goal", ""),
+                    goal=jb_goal,
                     prompt=prompt[:2000],
                     response=response,
                     verdict=verdict,
                     reason=reason,
+                    category=getattr(jb, "category", ""),
                     orig_jailbroken=getattr(jb, "jailbroken", None),
                 )
                 results.append(result)

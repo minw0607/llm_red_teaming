@@ -50,6 +50,7 @@ class JBBResult:
     response: str
     verdict: str
     reason: str
+    category: str = ""          # harm category (for per-category ASR)
     timestamp: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -122,9 +123,10 @@ class JailbreakBenchRunner:
         self,
         n_goals: int = 50,
         checkpoint_path: str | None = None,
+        dataset=None,
     ) -> list[JBBResult]:
         """
-        Send the first *n_goals* JailbreakBench goals to the target model.
+        Send the first *n_goals* goals to the target model.
 
         Parameters
         ----------
@@ -136,15 +138,23 @@ class JailbreakBenchRunner:
             - Each new result is appended immediately so a partial run is
               never lost.
             Example: ``"../results/02_ckpt_direct_n50.jsonl"``
+        dataset : object | None
+            A dataset exposing ``.goals``, ``.behaviors``, and (optionally)
+            ``.categories`` — e.g. ``jailbreakbench.read_dataset()`` or
+            ``attacks.jailbreak.load_harmbench()``. Defaults to
+            JailbreakBench when ``None``.
 
         Returns
         -------
         list[JBBResult]
             One result record per goal, ordered by index.
         """
-        dataset = jbb.read_dataset()
+        if dataset is None:
+            dataset = jbb.read_dataset()
         goals = dataset.goals[:n_goals]
         behaviors = dataset.behaviors[:n_goals]
+        categories = getattr(dataset, "categories", None)
+        categories = list(categories[:n_goals]) if categories is not None else [""] * len(goals)
 
         completed_indices: set[int] = set()
         results: list[JBBResult] = []
@@ -152,7 +162,7 @@ class JailbreakBenchRunner:
         if checkpoint_path:
             completed_indices, results = _load_jbb_checkpoint(checkpoint_path)
 
-        for idx, (goal, behavior) in enumerate(zip(goals, behaviors)):
+        for idx, (goal, behavior, category) in enumerate(zip(goals, behaviors, categories)):
             if idx in completed_indices:
                 continue
 
@@ -164,7 +174,7 @@ class JailbreakBenchRunner:
             except Exception as exc:
                 response = f"[ERROR] {exc}"
 
-            verdict, reason = self.judge.judge(response)
+            verdict, reason = self.judge.judge(response, goal=goal)
             result = JBBResult(
                 idx=idx,
                 behavior=behavior,
@@ -172,6 +182,7 @@ class JailbreakBenchRunner:
                 response=response,
                 verdict=verdict,
                 reason=reason,
+                category=category,
             )
             results.append(result)
 
