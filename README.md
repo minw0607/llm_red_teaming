@@ -23,9 +23,16 @@ Modern AI systems are increasingly deployed in sensitive contexts — yet their 
 - **Jailbreak** instruction-tuned LLMs using standardised benchmarks and custom templates
 - **Evaluate** robustness metrics: accuracy drop, attack success rate (ASR), stealth score, risk score
 - **Flag** high-risk adversarial examples for human review with priority queuing
-- **Align** every evaluation to industry standards: MITRE ATLAS, NIST AI RMF, NIST AI 600-1, and OWASP LLM Top 10
+- **Align** every evaluation to industry standards: MITRE ATLAS, NIST AI RMF, NIST AI 600-1, OWASP LLM Top 10, EU AI Act
 
-The library grows in tiers — from adversarial NLP benchmarks through prompt injection, bias testing, and multi-turn manipulation. Each module is independently usable or composable into full evaluation pipelines.
+The toolkit is organised into **workstreams**, each delivered as a code-light demo notebook backed by reusable modules. Jump to a workstream:
+
+| Workstream | Status | Front-page section | Full results |
+|---|:---:|---|---|
+| 🧬 **Adversarial NLP** | ✅ Complete | [↓ jump](#-adversarial-nlp-notebook-01) | [docs/01](docs/01_adversarial_nlp.md) |
+| 🔓 **Jailbreaking** | ✅ Complete | [↓ jump](#-jailbreaking-notebook-02) | [docs/02](docs/02_jailbreaking.md) |
+| 💉 **Prompt Injection** | 🔜 Next | [↓ jump](#-prompt-injection-notebook-03) | — |
+| ⚖️ **Fairness and NLI Robustness** | 📋 Planned | [↓ jump](#-fairness-and-nli-robustness-notebooks-0405) | — |
 
 ---
 
@@ -40,7 +47,8 @@ llm_red_teaming/
 │   ├── sentence/               # CheckList, StressTest                 [✅ implemented]
 │   ├── semantic/               # SemanticAttack                        [✅ implemented]
 │   ├── structural/             # BackTranslation, Homoglyph, Negation  [✅ implemented]
-│   └── prompt/                 # Injection, jailbreak, role-play       [🔜 next]
+│   ├── jailbreak/              # JailbreakBench + PAIR artifact runners [✅ implemented]
+│   └── prompt/                 # Injection, role-play                  [🔜 next]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -55,6 +63,8 @@ llm_red_teaming/
 │   ├── plots.py                # Risk matrix + accuracy bar charts     [✅ implemented]
 │   ├── display.py              # Human review display helper           [✅ implemented]
 │   ├── regulatory.py           # Dynamic regulatory impact mapping     [✅ implemented]
+│   ├── executive.py            # LLM-interpreted executive report      [✅ implemented]
+│   ├── sanity.py               # Pre-run readiness validator           [✅ implemented]
 │   ├── consistency.py          # Paraphrase & self-consistency         [📋 planned]
 │   └── fairness.py             # Counterfactual demographic scorer     [📋 planned]
 │
@@ -71,8 +81,10 @@ llm_red_teaming/
 │   ├── 04_fairness_counterfactual.ipynb # Demographic swap  [📋]
 │   └── 05_nli_robustness.ipynb         # AdvGLUE + ANLI    [📋]
 │
-├── docs/
-│   ├── images/                 # Figures referenced in README
+├── docs/                       # Per-workstream results & deep dives
+│   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
+│   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
+│   ├── images/                 # Figures referenced in docs
 │   └── samples/                # Sample report outputs
 │       └── executive_summary_n872.html   # Redacted executive summary (n=872)
 ├── configs/                    # Experiment configuration files
@@ -93,7 +105,7 @@ pip install -r requirements.txt
 cp .env.example .env          # fill in your Azure OpenAI credentials
 ```
 
-Open `notebooks/01_adversarial_nlp_demo.ipynb` and set `N_SAMPLES` in the config cell. Everything else runs end-to-end.
+Open any notebook in `notebooks/` and set the parameters in its config cell — everything else runs end-to-end.
 
 ```python
 # Programmatic usage
@@ -110,161 +122,115 @@ summary = compute_attack_summary(results)
 
 ---
 
-## 📈 Full Run Results (n = 872)
+## 🧬 Adversarial NLP (Notebook 01)
 
-Results from Notebook 01 — **10 adversarial attacks** evaluated on **872 SST-2 samples** against an Azure-hosted GPT-5-4 model. At this scale each percentage point represents ~8–9 real prediction flips, making the rankings stable and operationally meaningful.
+`Status: ✅ Complete`
 
-### Risk Matrix & Accuracy Comparison
+**What it tests:** how small, often-imperceptible text perturbations degrade a model's accuracy on a classification task (SST-2 sentiment). 10 black-box attacks across 5 perturbation levels — character, word, sentence, semantic, structural.
 
-![Risk Matrix](docs/images/nb01_risk_matrix.png)
+**Headline result** (GPT-5-4 via Azure, n = 872 samples):
 
-*Bubble size = Attack Success Rate (ASR). Shaded region = stealth ≥ 0.80 (danger zone).*
+| Attack | Level | Acc Drop | ASR | Stealth | Risk Score |
+|---|---|---|---|---|---|
+| 🔴 **NegationInjection** | structural | **+17.5%** | 19.6% | 0.941 | **0.1647** |
+| 🟠 **StressTest** | sentence | +3.3% | 4.5% | 0.888 | 0.0293 |
+| 🟡 **BackTranslation** | structural | +1.7% | 2.8% | 0.897 | 0.0153 |
 
-### Attack Summary (n = 872 samples, SST-2 sentiment, sorted by risk score)
+NegationInjection dominates — a 17.5% accuracy drop at 0.941 stealth, 5× the next attack, and undetectable by perplexity monitors. Character-level attacks are effectively neutralised at frontier scale. [See all 10 attacks, the risk matrix, and per-finding interpretation →](docs/01_adversarial_nlp.md)
 
-| Attack | Level | Orig Acc | Attacked Acc | Acc Drop | ASR | Stealth | Risk Score |
-|---|---|---|---|---|---|---|---|
-| 🔴 **NegationInjection** | structural | 95.5% | 78.1% | **+17.5%** | 19.6% | 0.941 | **0.1647** |
-| 🟠 **StressTest** | sentence | 95.5% | 92.2% | +3.3% | 4.5% | 0.888 | 0.0293 |
-| 🟡 **BackTranslation** | structural | 95.2% | 93.5% | +1.7% | 2.8% | 0.897 | 0.0153 |
-| 🟡 **TextFooler** | word | 95.7% | 94.1% | +1.6% | 2.7% | 0.872 | 0.0140 |
-| 🟡 **SemanticAttack** | semantic | 95.5% | 94.6% | +0.9% | 1.8% | 0.901 | 0.0081 |
-| **TextBugger** | character | 95.2% | 94.7% | +0.5% | 1.6% | 0.816 | 0.0041 |
-| **BERTAttack** | word | 95.5% | 95.2% | +0.4% | 1.0% | — | — |
-| **DeepWordBug** | character | 95.0% | 95.2% | −0.1% | 0.9% | 0.833 | 0.0000 |
-| **CheckList** | sentence | 95.5% | 95.7% | −0.2% | 0.7% | 0.818 | 0.0000 |
-| **Homoglyph** | structural | 95.3% | 95.9% | −0.6% | 1.0% | 0.824 | 0.0000 |
-
-*Stealth = composite score (0.5 × semantic_sim + 0.3 × naturalness + 0.2 × edit_sim). Risk Score = Acc Drop × Stealth. Negative acc drop = model improved (data cleaning / noise reduction effect).*
-
-**Key findings at n = 872:**
-- 🔴 **NegationInjection dominates**: 17.5% accuracy drop at 0.941 stealth — 5× larger than the second-ranked attack. Logically inverted text remains fluent (ppl_ratio 1.097) and is undetectable by perplexity monitors
-- 🟠 **StressTest is the only other HIGH-risk attack**: 3.3% drop — vacuous tautology appended to input causes attention drift, not semantic manipulation
-- 🟡 **Word/structural attacks cluster at 1–2%**: BackTranslation, TextFooler, SemanticAttack all stealth ≥ 0.87 — meaningful but individually manageable
-- ✅ **Character-level attacks ineffective at frontier scale**: TextBugger (+0.5%), DeepWordBug (−0.1%) — GPT-5-class models are robust to single-character typo perturbations
-- ℹ️ **Three attacks improve accuracy**: Homoglyph (−0.6%), CheckList (−0.2%), DeepWordBug (−0.1%) — perturbations land on harder sample variants, confirming these attacks have near-zero adversarial signal at this model scale
-
-### Notable Findings & Interpretations
-
-| Finding | What happened | Why it matters |
-|---|---|---|
-| **NegationInjection: 17.5% at n=872** | Gap to second-place (3.3%) is 5×, stable across 868 samples — not sampling noise | Structural logical attacks are the dominant threat for this model class. Character and word substitutions are largely solved at frontier scale; negation robustness is not. |
-| **BackTranslation: +1.7% acc drop** | EN→DE→EN normalises SST-2's noisy pre-tokenised text (removes spaces, fixes capitalisation); ppl_ratio 0.906 < 1 confirms attacked text is *more fluent* than original | Confirms the data-cleaning effect holds at scale. The 2.8% ASR reflects genuine adversarial signal on a small hard subset; the net effect is mild because most samples improve after round-trip translation. |
-| **BERTAttack: missing stealth data** | Stealth checkpoint did not complete for BERTAttack in this run — composite stealth columns show `—` | Risk score cannot be computed; treat as a data gap, not zero risk. Re-run `add_stealth_components()` with `checkpoint_path` to fill. Acc drop of 0.4% / ASR 1.0% visible from raw results. |
-| **Character attacks: at or below baseline** | TextBugger +0.5%, DeepWordBug −0.1% at n=872 | Deprioritise in future red-team cycles. Frontier LLMs are effectively immune to surface-level typo attacks; testing budget is better spent on structural and prompt-level attacks. |
-| **BERTAttack: HIGH→MEDIUM demotion** | `text_changed=False` flip cases (identical text, different model answer) correctly demoted | Model non-determinism on decision-boundary sentences, not attack success. Documented in `display_human_review()` with explicit flagging. |
-
-### Executive Security Report
-
-Notebook 01 auto-generates a **business-level security assessment report** (Step 10) using a judge LLM to interpret findings into plain-English risk assessments, regulatory citations, and prioritised recommendations.
+Notebook 01 also auto-generates a **business-level executive security report** — a judge LLM interprets the deterministic metrics into a plain-English risk verdict, regulatory citations, and prioritised recommendations (the metrics themselves are never LLM-generated):
 
 [![Executive Summary Report](docs/images/nb01_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)
 
 <div align="center">
 
-📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)**  ·  [Raw HTML](docs/samples/executive_summary_n872.html) *(n=872 full run · model name redacted)*
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)**  ·  [Full NB01 results →](docs/01_adversarial_nlp.md)  ·  [Open notebook →](notebooks/01_adversarial_nlp_demo.ipynb)
 
 </div>
 
-**What the report contains:**
-- **Overall risk verdict** and risk level (LOW / MEDIUM / HIGH / CRITICAL) — written in plain English for a non-technical leadership audience
-- **Key findings** — each with severity badge, headline, and 2–3 sentence business-impact explanation
-- **Attack results table** — all 10 attacks with acc drop, ASR, stealth, and risk score
-- **Attack methodology** — what each perturbation level simulates in plain English
-- **Regulatory obligations** — NIST AI 600-1 · MITRE ATLAS · OWASP LLM Top 10 · EU AI Act citations grounded in actual findings
-- **Prioritised recommendations** — numbered action items with rationale tied to specific data
+---
 
-> Numbers in the report come from deterministic metric computation. The judge LLM writes only the *narrative* — it cannot hallucinate the metrics.
+## 🔓 Jailbreaking (Notebook 02)
 
-### Regulatory Alignment
+`Status: ✅ Complete`
 
-**Dynamic regulatory impact mapping** (`regulatory_report()` + `render_regulatory_heatmap()`):
-- Finding-level citations — only attacks with meaningful impact in *this run* are reported; actual metric values (acc_drop, ASR, stealth) embedded in each citation
-- Special-case detection — data-cleaning effects (BackTranslation), model non-determinism (BERTAttack), and high-stealth structural attacks each map to specific obligations
-- **Frameworks:** NIST AI 600-1 (§2.3, §2.5, §2.6) · MITRE ATLAS (AML.T0043, T0015, T0016, T0040) · OWASP LLM Top 10 (LLM01, LLM09) · EU AI Act (Art. 9, 13, 15, 17)
+**What it tests:** whether harmful-intent prompts can bypass the model's safety alignment. Uses [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 harmful behaviors) across three escalating attack modes, scored by a BART-MNLI classifier judge.
 
-```python
-from evaluate import regulatory_report, render_regulatory_heatmap, generate_executive_summary
+**Headline result** (GPT-5-4 via Azure, 172 prompts):
 
-reg_df            = regulatory_report(summary_df, review_df=review_df)
-render_regulatory_heatmap(reg_df, save_path='results/regulatory_heatmap.png')
-exec_html, data   = generate_executive_summary(summary_df, review_df, reg_df, target, config)
-```
+| Test | N | ASR | Blocked | Refusal |
+|---|---|---|---|---|
+| **Direct Goals** | 50 | 0.0% | 46% | 50% |
+| **Artifact Templates** | 80 | 0.0% | 88% | 8% |
+| **PAIR (Vicuna-13B transfer)** | 42 | 2.4% | 29% | 62% |
 
-**Saved outputs** (all in `results/`, gitignored by default):
+The model held firm: 0% ASR on direct and template-wrapped attacks (Azure Prompt Shields blocked most at the platform layer), with a single borderline violation from PAIR transfer. [See the three modes, judge upgrade path, dataset gaps, and full regulatory mapping →](docs/02_jailbreaking.md)
 
-```
-01_raw_results_n872.csv          per-sample predictions (all 10 attacks × 872 rows)
-01_attack_summary_n872.csv       per-attack metrics (acc_drop, ASR, stealth, risk_score)
-01_attack_summary_n872.html      styled metrics table — open in browser
-01_human_review_n872.csv         flagged adversarial cases (HIGH / MEDIUM / LOW)
-01_executive_summary_n872.html   executive report — open in browser or share directly
-```
+**Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0006) · OWASP LLM Top 10 (LLM01, LLM06, LLM07) · NIST AI 600-1 (§2.1, §2.6, §2.8) · EU AI Act (Art. 9, Art. 15)
+
+<div align="center">
+
+[Full NB02 results →](docs/02_jailbreaking.md)  ·  [Open notebook →](notebooks/02_jailbreaking_demo.ipynb)
+
+</div>
 
 ---
 
-## 🗺️ Attack Library Roadmap
+## 💉 Prompt Injection (Notebook 03)
 
-All attacks are mapped to three industry frameworks:
+`Status: 🔜 Next`
+
+**What it will test:** whether adversarial instructions can override the system prompt or hijack model behaviour — both directly (in user input) and indirectly (via retrieved content in RAG pipelines).
+
+| Attack | Vector | MITRE ATLAS | OWASP LLM Top 10 |
+|---|---|---|---|
+| **Direct Prompt Injection** | Adversarial instructions in user input override the system prompt | AML.T0054 · AML.T0040 | LLM01 Prompt Injection |
+| **Indirect Prompt Injection** | Adversarial instructions in external content the LLM retrieves (emails, docs, web) | AML.T0054 · AML.T0040 | LLM01 Prompt Injection · LLM08 Vector & Embedding |
+
+**Primary metric:** override rate — fraction of injected instructions that change model behaviour. See the [Testing Strategy Roadmap](#-testing-strategy-roadmap) for the full plan.
+
+---
+
+## ⚖️ Fairness and NLI Robustness (Notebooks 04/05)
+
+`Status: 📋 Planned`
+
+**What it will test:**
+- **Counterfactual fairness (NB04)** — swap protected attributes (name, gender, race, nationality) and measure whether model output changes. Tests fairness, not just robustness.
+- **NLI robustness (NB05)** — adversarial robustness on AdvGLUE + ANLI, extending coverage beyond binary sentiment to logical entailment and reasoning.
+
+These workstreams introduce the `evaluate/fairness.py` and `evaluate/consistency.py` modules and the NLI dataset family. See the [Dataset Roadmap](#-dataset-roadmap) and [Testing Strategy Roadmap](#-testing-strategy-roadmap).
+
+---
+
+## 🗺️ Roadmap & Standards
+
+All attacks map to four industry frameworks:
 - **[MITRE ATLAS](https://atlas.mitre.org/)** — adversarial ML technique catalogue
 - **[NIST AI 600-1](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf)** — GenAI risk profile (July 2024)
 - **[OWASP LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/)** — application-layer LLM security risks (2025)
+- **[EU AI Act](https://artificialintelligenceact.eu/)** — high-risk AI system obligations (2024/1689)
 
 Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Research horizon
 
----
+> **Implemented attacks** are documented per-workstream above — see [docs/01](docs/01_adversarial_nlp.md) (10 adversarial NLP attacks) and [docs/02](docs/02_jailbreaking.md) (jailbreak modes), each with full standards mapping. The tables below cover **future** work.
 
-### ✅ Currently Implemented — Adversarial NLP (Notebook 01)
-
-These attacks perturb input text at increasing levels of abstraction and measure prediction flip rate on a classification task (SST-2 sentiment). All are black-box attacks requiring only API access to the target model.
-
-| Status | Attack | Level | Description | MITRE ATLAS | NIST AI 600-1 | OWASP LLM Top 10 |
-|:---:|---|---|---|---|---|---|
-| ✅ | **TextBugger** | Character | Substitutes one character near the start of a high-impact word | AML.T0043 · AML.T0015 | Information Security | LLM09 Misinformation |
-| ✅ | **DeepWordBug** | Character | Inserts, deletes, or swaps one character to break tokenisation | AML.T0043 · AML.T0015 | Information Security | LLM09 Misinformation |
-| ✅ | **TextFooler** | Word | Replaces one word with a top-k WordNet synonym that preserves part-of-speech | AML.T0043 · AML.T0015 | Information Security · Information Integrity | LLM09 Misinformation |
-| ✅ | **BERTAttack** | Word | Replaces one word using BERT fill-mask, filtered to cosine similarity ≥ 0.85 | AML.T0043 · AML.T0015 | Information Security · Information Integrity | LLM09 Misinformation |
-| ✅ | **CheckList** | Sentence | Appends a random alphanumeric token to test sensitivity to irrelevant context | AML.T0043 | Information Integrity | LLM09 Misinformation |
-| ✅ | **StressTest** | Sentence | Appends a logically vacuous tautology to probe attention drift | AML.T0043 | Information Integrity · Confabulation | LLM09 Misinformation |
-| ✅ | **SemanticAttack** | Semantic | POS-aware WordNet synonym swap — meaning-preserving, highest stealth | AML.T0043 · AML.T0015 | Information Integrity · Information Security | LLM09 Misinformation |
-| ✅ | **BackTranslation** | Structural | Round-trip EN→DE→EN via MarianMT — fluent paraphrases with high semantic fidelity | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-| ✅ | **Homoglyph** | Structural | Replaces ASCII characters with visually identical Unicode lookalikes (Cyrillic, Greek) | AML.T0043 | Information Security | LLM01 Prompt Injection · LLM09 Misinformation |
-| ✅ | **NegationInjection** | Structural | Inserts or removes negation words (`not`, `never`, `hardly`) to flip logical meaning | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-
-**Evaluation metrics (all implemented):** Accuracy Drop · Attack Success Rate (ASR) · Stealth Score (semantic similarity) · Risk Score (Impact × Stealth) · Human Review Queue (HIGH / MEDIUM / LOW)
-
----
-
-### 🔜 Tier 1 — High Priority (Next Milestone)
-
-These attacks represent the dominant real-world threat surface for production LLMs. Character and word perturbations have limited impact on frontier models (confirmed by Notebook 01); the critical gaps are at the prompt and structural levels.
-
-| Status | Attack | Category | Description | MITRE ATLAS | NIST AI 600-1 | OWASP LLM Top 10 |
-|:---:|---|---|---|---|---|---|
-| 🔜 | **Direct Prompt Injection** | Prompt | Embed adversarial instructions directly in user input to override the system prompt (e.g. "Ignore previous instructions and…") | AML.T0054 · AML.T0040 | Information Security | LLM01 Prompt Injection |
-| 🔜 | **Indirect Prompt Injection** | Prompt | Inject adversarial instructions into external content the LLM retrieves or processes (emails, documents, web pages) | AML.T0054 · AML.T0040 | Information Security · Value Chain | LLM01 Prompt Injection · LLM08 Vector & Embedding |
-| 🔜 | **Jailbreak — Role-play / Persona** | Prompt | Instruct the model to adopt a persona (DAN, "evil AI") that bypasses safety alignment | AML.T0054 | Information Security · Harmful Bias | LLM01 Prompt Injection · LLM07 System Prompt Leakage |
-| 🔜 | **Jailbreak — Hypothetical Framing** | Prompt | Wrap harmful requests in fictional, hypothetical, or academic framing to bypass refusal | AML.T0054 | Information Security | LLM01 Prompt Injection |
-| ✅ | **Back-Translation Attack** | Structural | Translate text to an intermediate language and back to produce fluent paraphrases — cleaner than WordNet synonyms | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-| ✅ | **Homoglyph / Unicode Attack** | Structural | Replace ASCII characters with visually identical Unicode lookalikes (e.g. Cyrillic `а` for Latin `a`) to bypass keyword filters | AML.T0043 | Information Security | LLM01 Prompt Injection · LLM09 Misinformation |
-| ✅ | **Negation Injection** | Structural | Insert or remove negation words (`not`, `never`, `hardly`) near predicates to test logical negation robustness | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-
----
-
-### 📋 Tier 2 — Medium Priority (Planned)
+### Future Attack Library — Tier 2 (Medium Priority)
 
 | Status | Attack | Category | Description | MITRE ATLAS | NIST AI 600-1 | OWASP LLM Top 10 |
 |:---:|---|---|---|---|---|---|
 | 📋 | **Paraphrase Model Attack** | Semantic | Use a paraphrase model (PEGASUS, DIPPER, T5) to generate fluent rewrites — more naturalistic than synonym lookups | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
 | 📋 | **Counterfactual / Demographic Swap** | Fairness | Swap protected attributes (name, gender, race, nationality) and measure if model output changes — tests fairness, not just robustness | AML.T0043 | Harmful Bias and Homogenization | LLM09 Misinformation |
 | 📋 | **Payload Splitting** | Prompt | Distribute a forbidden phrase across multiple tokens, turns, or encoded segments to evade safety filters | AML.T0054 | Information Security | LLM01 Prompt Injection · LLM07 System Prompt Leakage |
-| 📋 | **Many-Shot Jailbreak** | Prompt | Provide many in-context examples of policy-violating exchanges before the target request to shift the model's behaviour | AML.T0054 | Information Security | LLM01 Prompt Injection |
-| 📋 | **GCG / Adversarial Suffix** | Gradient | Greedy Coordinate Gradient (Zou et al. 2023) — finds a universal adversarial suffix that forces harmful outputs; transferable to black-box targets | AML.T0043 · AML.T0015 | Information Security | LLM01 Prompt Injection |
-| 📋 | **Multilingual Bypass** | Structural | Submit harmful requests in low-resource languages where safety fine-tuning is weaker | AML.T0054 | Information Security · Harmful Bias | LLM01 Prompt Injection |
+| 📋 | **Many-Shot Jailbreak** | Prompt | Provide many in-context examples of policy-violating exchanges before the target request to shift the model's behaviour (Anthropic, 2024) | AML.T0054 | Information Security (§2.6) | LLM01 Prompt Injection |
+| 📋 | **Crescendo / Multi-Turn** | Prompt | Escalate harmful requests across multiple conversational turns, each individually benign (Microsoft, 2024) | AML.T0054 · AML.T0006 | Information Security (§2.6) | LLM01 Prompt Injection · LLM06 Excessive Agency |
+| 📋 | **GCG / Adversarial Suffix** | Gradient | Greedy Coordinate Gradient (Zou et al. 2023) — finds a universal adversarial suffix that forces harmful outputs; transferable to black-box targets | AML.T0043 · AML.T0015 | Information Security (§2.6) | LLM01 Prompt Injection |
+| 📋 | **Multilingual Bypass** | Structural | Submit harmful requests in low-resource languages where safety fine-tuning is weaker | AML.T0054 | Information Security (§2.6) · Harmful Bias (§2.8) | LLM01 Prompt Injection |
+| 📋 | **HarmBench Expansion** | Dataset | Extend jailbreak coverage from 100 (JailbreakBench) to 400 behaviors across 7 harm categories with pre-published ASR baselines for model comparison | AML.T0054 | Information Security (§2.6) · CBRN (§2.1) | LLM01 Prompt Injection |
+| 📋 | **StrongREJECT Scoring** | Metric | Replace binary ASR with StrongREJECT score (Souly et al. 2024) — penalises partial compliance; more accurate than BART-MNLI on ambiguous refusals | AML.T0054 | Information Security (§2.6) | LLM01 Prompt Injection |
+| 📋 | **Llama Guard Judge** | Judge | Replace BART-MNLI with Meta's Llama Guard 3 (fine-tuned safety classifier) — lower false-positive rate on sensitive-topic academic responses | AML.T0054 | Information Security (§2.6) | LLM01 Prompt Injection |
 
----
-
-### 🔭 Tier 3 — Research Horizon (Long-term)
+### Future Attack Library — Tier 3 (Research Horizon)
 
 | Status | Attack | Category | Description | MITRE ATLAS | NIST AI 600-1 | OWASP LLM Top 10 |
 |:---:|---|---|---|---|---|---|
@@ -276,27 +242,22 @@ These attacks represent the dominant real-world threat surface for production LL
 | 🔭 | **Model Extraction / Stealing** | Privacy | Reconstruct a functional surrogate of the target model via repeated black-box queries | AML.T0031 · AML.T0040 | Value Chain and Component Integration | LLM02 Sensitive Information Disclosure |
 | 🔭 | **Training Data Extraction** | Privacy | Prompt the model to reproduce memorised training data (PII, copyrighted text) | AML.T0031 | Data Privacy · Intellectual Property | LLM02 Sensitive Information Disclosure |
 
----
-
-## 📊 Dataset Roadmap
+### 📊 Dataset Roadmap
 
 | Status | Dataset | Task | What it adds | Source |
 |:---:|---|---|---|---|
 | ✅ | **SST-2** | Binary sentiment | Baseline — fast to score, sensitive to lexical changes | [HuggingFace](https://huggingface.co/datasets/stanfordnlp/sst2) |
+| ✅ | **JailbreakBench** | Safety / jailbreak | 100 harmful behaviors + PAIR/GCG artifact library | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) |
+| 📋 | **HarmBench** | Safety / jailbreak | 400 behaviors across 7 harm categories; published ASR baselines | [HarmBench](https://github.com/centerforaisafety/HarmBench) |
 | 📋 | **AdvGLUE** | NLI, QA, sentiment | Already adversarially constructed; drop-in replacement for GLUE tasks | [Yang et al. 2021](https://arxiv.org/abs/2106.09680) |
 | 📋 | **ANLI** | 3-class entailment | Collected via adversarial human-in-the-loop; harder than SNLI | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
 | 📋 | **MultiNLI** | 3-class entailment | Tests logical reasoning robustness across 10 genres | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |
 | 📋 | **ToxiGen / HateXplain** | Toxicity classification | Safety-critical: does the model correctly flag hate speech after perturbation? | [ToxiGen](https://arxiv.org/abs/2203.09509) · [HateXplain](https://arxiv.org/abs/2012.10289) |
 | 📋 | **TriviaQA** | Open-domain QA | Does a factual answer change when the question is rephrased? | [HuggingFace](https://huggingface.co/datasets/trivia_qa) |
-| 📋 | **AdvBench / HarmBench** | Safety / jailbreak | Standardised jailbreak goal banks; pairs with Tier 1 prompt attacks | [AdvBench](https://github.com/llm-attacks/llm-attacks) · [HarmBench](https://github.com/centerforaisafety/HarmBench) |
 | 🔭 | **MMLU** (select subsets) | Multi-domain MCQ | Domain-specific robustness (medical, legal, STEM) under prompt rephrasing | [HuggingFace](https://huggingface.co/datasets/cais/mmlu) |
 | 🔭 | **MT-Bench** | Instruction following | Does multi-turn output quality degrade under adversarial system prompts? | [LMSYS](https://github.com/lm-sys/FastChat/tree/main/fastchat/llm_judge) |
 
----
-
-## 🧪 Testing Strategy Roadmap
-
-Current evaluation (Notebook 01) measures **prediction flip** on a classification task. The table below maps out the full strategy surface.
+### 🧪 Testing Strategy Roadmap
 
 | Status | Strategy | What it measures | Primary dataset(s) | Key metric |
 |:---:|---|---|---|---|
@@ -304,7 +265,7 @@ Current evaluation (Notebook 01) measures **prediction flip** on a classificatio
 | ✅ | **Risk Scoring** | Composite danger = Impact × Stealth; ranks attacks by operational priority | SST-2 | Risk Score |
 | ✅ | **Human Review Queue** | Prioritises adversarial examples by flip + stealth for manual inspection | All | HIGH / MEDIUM / LOW |
 | ✅ | **Composite Stealth Scoring** | Semantic similarity + perplexity ratio + normalised edit distance — richer imperceptibility signal than cosine similarity alone | All | Weighted composite |
-| 🔜 | **Jailbreak Success Rate** | Fraction of jailbreak prompts that elicit a policy-violating response, judged by a classifier | AdvBench · HarmBench | Jailbreak ASR |
+| ✅ | **Jailbreak Success Rate (ASR)** | Fraction of jailbreak prompts that elicit a policy-violating response, judged by a BART-MNLI classifier | JailbreakBench (100 behaviors) | Jailbreak ASR |
 | 🔜 | **Prompt Injection Success Rate** | Fraction of injected instructions that override the system prompt or change model behaviour | Custom · indirect RAG | Override rate |
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
 | 📋 | **Counterfactual Fairness** | Does swapping a protected attribute (name, gender, race) change the model's output? | Custom templates | Flip rate by attribute |
@@ -321,8 +282,8 @@ Current evaluation (Notebook 01) measures **prediction flip** on a classificatio
 
 | Notebook | Status | Description |
 |---|:---:|---|
-| [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 10 adversarial attacks × SST-2 — 5 perturbation levels, accuracy drop, composite stealth scoring, risk matrix, human review queue, MITRE ATLAS + NIST AI 600-1 alignment |
-| [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | JailbreakBench goals + PAIR artifacts against GPT-5 via Azure APIM |
+| [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 10 adversarial attacks × SST-2 — 5 perturbation levels, accuracy drop, composite stealth scoring, risk matrix, human review queue, executive report. [Results →](docs/01_adversarial_nlp.md) |
+| [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | Three-mode jailbreak evaluation — direct goals, artifact templates, PAIR transfer; BART-MNLI judge, incremental checkpointing, regulatory mapping. [Results →](docs/02_jailbreaking.md) |
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | 🔜 | Direct and indirect (RAG) prompt injection — override rate and payload taxonomy |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | 📋 | Demographic swap testing — attribute-level flip rates and fairness metrics |
 | [`05_nli_robustness.ipynb`](notebooks/05_nli_robustness.ipynb) | 📋 | Adversarial robustness on AdvGLUE + ANLI — cross-task coverage beyond sentiment |
@@ -338,16 +299,17 @@ Notebooks are intentionally **code-light** — they import from the modules abov
 - [NIST AI RMF (2023)](https://www.nist.gov/system/files/documents/2023/01/26/AI%20RMF%201.0.pdf) — AI Risk Management Framework
 - [NIST AI 600-1 (2024)](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf) — Generative AI Profile
 - [OWASP LLM Top 10 (2025)](https://owasp.org/www-project-top-10-for-large-language-model-applications/) — LLM application security risks
+- [EU AI Act (2024/1689)](https://artificialintelligenceact.eu/) — High-risk AI system obligations
 
 ### Attacks & Benchmarks
 - [TextFooler](https://arxiv.org/abs/1907.11932) — Jin et al., 2019
 - [TextBugger](https://arxiv.org/abs/1812.05271) — Li et al., 2019
 - [DeepWordBug](https://arxiv.org/abs/1801.04354) — Gao et al., 2018
 - [BERT-Attack](https://arxiv.org/abs/2004.09984) — Li et al., 2020
+- [PAIR](https://arxiv.org/abs/2310.08419) — Chao et al., 2023
 - [GCG Universal Adversarial Attacks](https://arxiv.org/abs/2307.15043) — Zou et al., 2023
-- [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench)
-- [AdvBench](https://github.com/llm-attacks/llm-attacks)
-- [HarmBench](https://github.com/centerforaisafety/HarmBench)
+- [StrongREJECT](https://arxiv.org/abs/2402.10260) — Souly et al., 2024
+- [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) · [AdvBench](https://github.com/llm-attacks/llm-attacks) · [HarmBench](https://github.com/centerforaisafety/HarmBench)
 
 ### Datasets
 - [SST-2](https://huggingface.co/datasets/stanfordnlp/sst2) — Stanford Sentiment Treebank
@@ -369,7 +331,7 @@ Contributions are welcome. To add a new attack, dataset, or testing strategy:
 
 1. Fork the repo and create a feature branch
 2. Follow the existing module structure — attacks inherit from the base class in `attacks/base.py`
-3. Add an entry to the Attack Library Roadmap table above (with standards mapping)
+3. Add an entry to the relevant roadmap table (with standards mapping)
 4. Open a PR with a short description of the attack and at least one worked example
 
 ---
