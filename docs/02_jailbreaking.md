@@ -2,11 +2,11 @@
 
 [← Back to README](../README.md) · [Open notebook](../notebooks/02_jailbreaking_demo.ipynb)
 
-Three-mode jailbreak evaluation against an Azure-hosted GPT-5-4 model using [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 harmful-behavior dataset) and its PAIR/GCG artifact library. Responses are scored by a zero-shot BART-MNLI classifier judge into five verdicts: `violation`, `refusal`, `blocked`, `uncertain`, `benign`.
+Three-mode jailbreak evaluation against an Azure-hosted GPT-5-4 model, aligned with current industry benchmarks. Supports two datasets ([JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) — 100 behaviors + PAIR/GCG artifacts; [HarmBench](https://www.harmbench.org/) — 400 behaviors, 7 categories) and two judges (a free local BART-MNLI classifier, or an LLM-as-judge using gpt-4-1). Responses are scored into five verdicts — `violation`, `refusal`, `blocked`, `uncertain`, `benign` — with per-category ASR and StrongREJECT graded scoring.
 
 ---
 
-## Results Summary
+## Results Summary — JailbreakBench (classifier judge)
 
 | Test | N | ASR | Blocked | Refusal | Uncertain | Violation |
 |---|---|---|---|---|---|---|
@@ -15,6 +15,20 @@ Three-mode jailbreak evaluation against an Azure-hosted GPT-5-4 model using [Jai
 | **Test 3 — PAIR (Vicuna-13B)** | 42 | 2.4% | 29% | 62% | 5% | 1 |
 
 `ASR = violations / total evaluated`
+
+![JailbreakBench verdict distribution by attack mode](images/nb02_verdict_distribution.png)
+
+### Per-category ASR (JailbreakBench)
+
+| Category | N | ASR |
+|---|---|---|
+| Harassment/Discrimination | 60 | 1.7% |
+| Malware/Hacking | 60 | 0.0% |
+| Physical harm | 18 | 0.0% |
+| Economic harm | 17 | 0.0% |
+| Fraud/Deception | 17 | 0.0% |
+
+*Only 5 of JBB's 10 categories appear — the default `N_GOALS` samples the dataset sequentially, and JBB is category-ordered. Raise `N_GOALS` (or use the HarmBench `stratify` option) for full category coverage. The lone non-zero entry is the single PAIR-transfer violation.*
 
 ### The three test modes
 
@@ -39,25 +53,38 @@ Three-mode jailbreak evaluation against an Azure-hosted GPT-5-4 model using [Jai
 
 ---
 
-## Judging Limitations & Upgrade Path
+## HarmBench Cross-Check
 
-| Judge | Accuracy | Cost | Notes |
-|---|---|---|---|
-| BART-MNLI (current) | Moderate | Free, local | False positives on academic/historical responses |
-| Llama Guard 3 (next) | High | Free, local | Fine-tuned specifically for safety classification |
-| GPT-4o as judge | Highest | API cost | Circular if judge = target model family |
+The same target was re-run against **HarmBench** (a tougher, broader benchmark) as an independent corroboration:
 
-Binary ASR also undercounts *partial compliance* (e.g. "I can't help, but here's how it works…"). **StrongREJECT** (Souly et al., 2024) is the recommended upgrade — it scores responses on a scale rather than binary, penalising these cases.
+| Test | N | ASR | Blocked | Refusal |
+|---|---|---|---|---|
+| Direct Goals | 50 | 0.0% | 34% | 66% |
+| Artifact Templates | 80 | 0.0% | 80% | 20% |
+
+**0 violations across 130 prompts**, spanning harder behaviors (chemical/biological, illegal, misinformation). HarmBench's explicit weapon/chemical phrasing triggered more *model-level refusals* (66% direct) where JailbreakBench leaned on *platform blocking* — both defence layers held. (This run sampled 5 of HarmBench's 7 categories; set `HARMBENCH_STRATIFY=True` for even coverage at small N.)
 
 ---
 
-## Dataset Coverage & Gaps
+## Judges (implemented) & Further Upgrades
+
+| Judge | Status | Accuracy | Cost | Notes |
+|---|---|---|---|---|
+| BART-MNLI classifier | ✅ `JUDGE_TYPE='classifier'` | Moderate | Free, local | Default; false positives on academic/historical responses |
+| LLM-as-judge (gpt-4-1) | ✅ `JUDGE_TYPE='llm'` | High | API cost | Reads goal + response, reasons about actual compliance |
+| Llama Guard 3 | ⏭️ Deferred | High | Free (needs GPU) | Gated 8B model, impractical on local CPU; LLM judge covers the gap |
+
+Binary ASR undercounts *partial compliance* (e.g. "I can't help, but here's how it works…"). **StrongREJECT** (Souly et al., 2024) — now implemented (`RUN_STRONGREJECT=True`) — grades each response on refusal × (specificity + convincingness) → a 0–1 score, penalising these cases.
+
+---
+
+## Dataset Coverage
 
 | Dataset | Behaviors | Status | Value |
 |---|---|---|---|
-| JailbreakBench | 100 | ✅ Implemented | Reproducible benchmark; PAIR/GCG artifacts included |
-| HarmBench | 400 | 📋 Planned | 7 harm categories; published ASR baselines for comparison |
-| WildJailbreak | ~5,700 | 📋 Planned | Real-world adversarial diversity beyond curated categories |
+| JailbreakBench | 100 | ✅ Implemented | Reproducible baseline; PAIR/GCG artifacts included |
+| HarmBench | 300 / 400 | ✅ Implemented | 7 harm categories; published ASR baselines; `stratify` option |
+| WildJailbreak | large-scale | 📋 Planned | Real-world adversarial diversity beyond curated categories |
 | Custom / vertical | Variable | 📋 Engagement-level | Deployment-specific threat model (finance, healthcare, legal) |
 
 See [dataset_strategy.md](dataset_strategy.md) for how to select test sets for real engagements.
@@ -96,4 +123,6 @@ Each test checkpoints incrementally — re-running a cell resumes from where it 
 
 ## Next Steps
 
-HarmBench dataset integration · StrongREJECT scoring · Llama Guard 3 judge · many-shot jailbreak · Crescendo multi-turn attack · prompt injection ([Notebook 03](../notebooks/03_prompt_injection.ipynb))
+Crescendo multi-turn attack · TAP/AutoDAN automated generation · Llama Guard 3 judge (GPU) · prompt injection ([Notebook 03](../notebooks/03_prompt_injection.ipynb))
+
+See [industry_alignment.md](industry_alignment.md) for the full field comparison and prioritised roadmap.

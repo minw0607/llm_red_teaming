@@ -158,9 +158,9 @@ Notebook 01 also auto-generates a **business-level executive security report** �
 
 `Status: ✅ Complete`
 
-**What it tests:** whether harmful-intent prompts can bypass the model's safety alignment. Uses [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 harmful behaviors) across three escalating attack modes, scored by a BART-MNLI classifier judge.
+**What it tests:** whether harmful-intent prompts can bypass the model's safety alignment. Two standard benchmarks — [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 behaviors + PAIR artifacts) and [HarmBench](https://www.harmbench.org/) (400 behaviors, 7 categories) — across three escalating attack modes: direct goals, artifact templates, and PAIR transfer. Responses are scored by a choice of judge — a free local BART-MNLI classifier or a higher-accuracy LLM-as-judge (gpt-4-1) — with per-category ASR and StrongREJECT graded scoring.
 
-**Headline result** (GPT-5-4 via Azure, 172 prompts):
+**Headline result** — JailbreakBench, GPT-5-4 via Azure, 172 prompts:
 
 | Test | N | ASR | Blocked | Refusal |
 |---|---|---|---|---|
@@ -168,7 +168,11 @@ Notebook 01 also auto-generates a **business-level executive security report** �
 | **Artifact Templates** | 80 | 0.0% | 88% | 8% |
 | **PAIR (Vicuna-13B transfer)** | 42 | 2.4% | 29% | 62% |
 
-The model held firm: 0% ASR on direct and template-wrapped attacks (Azure Prompt Shields blocked most at the platform layer), with a single borderline violation from PAIR transfer. [See the three modes, judge upgrade path, dataset gaps, and full regulatory mapping →](docs/02_jailbreaking.md)
+![JailbreakBench verdict distribution](docs/images/nb02_verdict_distribution.png)
+
+The model held firm — 0% ASR on direct and template-wrapped attacks (Azure Prompt Shields blocked most at the platform layer), with a single borderline PAIR-transfer violation (a historical account the classifier flagged at its threshold). A **HarmBench cross-check** (130 prompts across harder CBRN / illegal / misinformation behaviors) returned **0 violations**, corroborating the result on a tougher benchmark. [See both datasets, per-category ASR, StrongREJECT, and full regulatory mapping →](docs/02_jailbreaking.md)
+
+**Capabilities:** 2 datasets (JailbreakBench · HarmBench) · 2 judges (BART-MNLI · LLM-as-judge) · per-category ASR · StrongREJECT graded scoring · resumable checkpointing
 
 **Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0006) · OWASP LLM Top 10 (LLM01, LLM06, LLM07) · NIST AI 600-1 (§2.1, §2.6, §2.8) · EU AI Act (Art. 9, Art. 15)
 
