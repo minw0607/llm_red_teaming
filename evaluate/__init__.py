@@ -23,7 +23,10 @@ from .display import display_human_review
 from .regulatory import map_to_regulations, regulatory_report, render_regulatory_heatmap
 from .executive import generate_executive_summary, render_executive_html
 from .jb_executive import generate_jailbreak_summary, render_jailbreak_html, compute_jailbreak_metrics
-from .injection_metrics import override_rate, override_by, injection_summary, injection_report
+from .injection_metrics import (
+    override_rate, override_by, injection_summary, injection_report,
+    explain_overrides, print_override_report,
+)
 from .injection_executive import generate_injection_summary, render_injection_html, compute_injection_metrics
 from .sanity import sanity_check, render_sanity_html
 
@@ -60,6 +63,8 @@ __all__ = [
     "override_by",
     "injection_summary",
     "injection_report",
+    "explain_overrides",
+    "print_override_report",
     "generate_injection_summary",
     "render_injection_html",
     "compute_injection_metrics",
