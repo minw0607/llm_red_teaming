@@ -25,6 +25,12 @@ Modern AI systems are increasingly deployed in sensitive contexts — yet their 
 - **Flag** high-risk adversarial examples for human review with priority queuing
 - **Align** every evaluation to industry standards: MITRE ATLAS, NIST AI RMF, NIST AI 600-1, OWASP LLM Top 10, EU AI Act
 
+### Where this toolkit fits
+
+Adversarial ML attacks span the whole pipeline — training data, the model, and its inputs/outputs. This toolkit currently covers the **inference-time, input-manipulation** half of that surface (evasion, jailbreaking, prompt injection), with data-/model-level attacks (poisoning, privacy, extraction) on the roadmap:
+
+![AI red teaming attack surface](docs/images/attack_surface.png)
+
 The toolkit is organised into **workstreams**, each delivered as a code-light demo notebook backed by reusable modules. Jump to a workstream:
 
 | Workstream | Status | Front-page section | Full results |

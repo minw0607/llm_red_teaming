@@ -8,6 +8,21 @@ Tests whether the target model can be made to **ignore its system instruction an
 
 ---
 
+## Injection vs Jailbreaking
+
+These are **siblings, not the same attack**. Jailbreaking (NB02) targets the model's **safety alignment** — the attacker is the user, trying to extract disallowed content. Prompt injection targets the application's **control flow** — making the model follow the wrong instruction, which often has nothing to do with safety. The clearest separator is *indirect* injection: the attacker is **not the user** but a third party who plants instructions in content the innocent user's app later reads. Jailbreaking has no such third-party variant.
+
+| | Jailbreaking | Prompt Injection |
+|---|---|---|
+| Attacks | Model safety alignment | App system-prompt / control flow |
+| Attacker | The user | The user **or a third party** |
+| Metric | ASR (judge-scored) | Override rate (canary, deterministic) |
+| Defence | Safety tuning, filters | Instruction/data separation, sanitise retrieved content |
+
+**Mental model:** jailbreak = make the *model* misbehave; injection = make the *application* misbehave.
+
+---
+
 ## Attack Vectors
 
 | Vector | Where the injection lives | OWASP | Why it matters |
