@@ -22,6 +22,7 @@ from .plots import plot_adversarial_summary, DEFAULT_LEVEL_COLORS
 from .display import display_human_review
 from .regulatory import map_to_regulations, regulatory_report, render_regulatory_heatmap
 from .executive import generate_executive_summary, render_executive_html
+from .jb_executive import generate_jailbreak_summary, render_jailbreak_html, compute_jailbreak_metrics
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -48,6 +49,10 @@ __all__ = [
     # Executive summary
     "generate_executive_summary",
     "render_executive_html",
+    # Jailbreak executive summary
+    "generate_jailbreak_summary",
+    "render_jailbreak_html",
+    "compute_jailbreak_metrics",
     # Sanity check
     "sanity_check",
     "render_sanity_html",
