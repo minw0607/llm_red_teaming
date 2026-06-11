@@ -429,7 +429,7 @@ def render_executive_html(
         '<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;'
         'opacity:.7;margin-bottom:4px;">Confidential — Internal Security Assessment</div>',
         '<div style="font-size:22px;font-weight:700;letter-spacing:-.3px;">'
-        '🔴 LLM Red Team Assessment — Executive Summary</div>',
+        '🔴 Adversarial NLP Assessment — Executive Summary</div>',
         f'<div style="margin-top:8px;font-size:12px;opacity:.75;">'
         f'Target: <strong>{model}</strong> &nbsp;|&nbsp; '
         f'Dataset: <strong>{dataset}</strong> &nbsp;|&nbsp; '
