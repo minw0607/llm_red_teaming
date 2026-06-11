@@ -174,13 +174,15 @@ The model held firm — 0% ASR on direct and template-wrapped attacks (Azure Pro
 
 **Capabilities:** 2 datasets (JailbreakBench · HarmBench) · 2 judges (BART-MNLI · LLM-as-judge) · per-category ASR · StrongREJECT graded scoring · resumable checkpointing
 
-**Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0006) · OWASP LLM Top 10 (LLM01, LLM06, LLM07) · NIST AI 600-1 (§2.1, §2.6, §2.8) · EU AI Act (Art. 9, Art. 15)
+Like NB01, the notebook auto-generates a **business-level executive report** (judge LLM writes the narrative; all numbers are computed):
 
 <div align="center">
 
-[Full NB02 results →](docs/02_jailbreaking.md)  ·  [Open notebook →](notebooks/02_jailbreaking_demo.ipynb)
+📄 **[Open interactive jailbreak report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/jailbreak_executive_summary.html)**  ·  [Full NB02 results →](docs/02_jailbreaking.md)  ·  [Open notebook →](notebooks/02_jailbreaking_demo.ipynb)
 
 </div>
+
+**Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0006) · OWASP LLM Top 10 (LLM01, LLM06, LLM07) · NIST AI 600-1 (§2.1, §2.6, §2.8) · EU AI Act (Art. 9, Art. 15)
 
 ---
 

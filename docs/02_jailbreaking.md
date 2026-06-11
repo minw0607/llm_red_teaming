@@ -108,10 +108,19 @@ See [dataset_strategy.md](dataset_strategy.md) for how to select test sets for r
 
 ---
 
+## Executive Security Report
+
+The notebook auto-generates a business-level HTML report (Step 9) — the jailbreak analogue of NB01's executive summary. A judge LLM writes the narrative (risk verdict, key findings, recommendations); every number is computed deterministically from the results, and the prompt uses **aggregate stats only** (no harmful goals/responses), so report generation does not trip the content filter.
+
+📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/jailbreak_executive_summary.html)** · [Raw HTML](samples/jailbreak_executive_summary.html) *(JailbreakBench n=100, LLM judge · model name redacted)*
+
+---
+
 ## Saved Outputs
 
 ```
 02_jailbreak_all_results.csv     all tests, all verdicts (172 rows)
+02_executive_summary.html        business-level executive report (Step 9)
 02_violations.xlsx               violation-only subset for human review
 02_verdict_distribution.png      verdict pie charts by test mode
 02_ckpt_*.jsonl                  per-test checkpoints (resume-safe)
