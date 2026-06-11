@@ -31,7 +31,7 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 |---|:---:|---|---|
 | 🧬 **Adversarial NLP** | ✅ Complete | [↓ jump](#-adversarial-nlp-notebook-01) | [docs/01](docs/01_adversarial_nlp.md) |
 | 🔓 **Jailbreaking** | ✅ Complete | [↓ jump](#-jailbreaking-notebook-02) | [docs/02](docs/02_jailbreaking.md) |
-| 💉 **Prompt Injection** | 🔜 Next | [↓ jump](#-prompt-injection-notebook-03) | — |
+| 💉 **Prompt Injection** | ✅ Complete | [↓ jump](#-prompt-injection-notebook-03) | [docs/03](docs/03_prompt_injection.md) |
 | ⚖️ **Fairness and NLI Robustness** | 📋 Planned | [↓ jump](#-fairness-and-nli-robustness-notebooks-0405) | — |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
@@ -50,7 +50,7 @@ llm_red_teaming/
 │   ├── semantic/               # SemanticAttack                        [✅ implemented]
 │   ├── structural/             # BackTranslation, Homoglyph, Negation  [✅ implemented]
 │   ├── jailbreak/              # JailbreakBench + PAIR artifact runners [✅ implemented]
-│   └── prompt/                 # Injection, role-play                  [🔜 next]
+│   └── prompt/                 # Prompt injection (direct + indirect)  [✅ implemented]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -86,6 +86,7 @@ llm_red_teaming/
 ├── docs/                       # Per-workstream results & deep dives
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
 │   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
+│   ├── 03_prompt_injection.md  # NB03 design & methodology            [✅]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
@@ -192,16 +193,26 @@ Like NB01, the notebook auto-generates a **business-level executive report** (ju
 
 ## 💉 Prompt Injection (Notebook 03)
 
-`Status: 🔜 Next`
+`Status: ✅ Complete` *(harness built & tested; run the notebook to populate target results)*
 
-**What it will test:** whether adversarial instructions can override the system prompt or hijack model behaviour — both directly (in user input) and indirectly (via retrieved content in RAG pipelines).
+**What it tests:** whether adversarial instructions can override the system prompt or hijack model behaviour — both directly (in user input) and indirectly (via content the model retrieves).
 
 | Attack | Vector | MITRE ATLAS | OWASP LLM Top 10 |
 |---|---|---|---|
 | **Direct Prompt Injection** | Adversarial instructions in user input override the system prompt | AML.T0054 · AML.T0040 | LLM01 Prompt Injection |
-| **Indirect Prompt Injection** | Adversarial instructions in external content the LLM retrieves (emails, docs, web) | AML.T0054 · AML.T0040 | LLM01 Prompt Injection · LLM08 Vector & Embedding |
+| **Indirect Prompt Injection** | Adversarial instructions hidden in an external document the model processes (RAG / email / web) | AML.T0054 · AML.T0040 | LLM01 Prompt Injection · LLM08 Vector & Embedding |
 
-**Primary metric:** override rate — fraction of injected instructions that change model behaviour. See the [Testing Strategy Roadmap](#-testing-strategy-roadmap) for the full plan.
+**How it works:** 5 injection strategies from the [Open-Prompt-Injection taxonomy](https://arxiv.org/abs/2310.12815) (naive · escape · context-ignoring · fake-completion · combined) × 3 base tasks × both vectors, plus real-world payloads from [`deepset/prompt-injections`](https://huggingface.co/datasets/deepset/prompt-injections). Success is measured deterministically by **canary detection** (each injection asks the model to emit a unique marker; the marker appearing = override) — no judge needed for the core **override-rate** metric. Real payloads (no canary) are LLM-judged.
+
+**Capabilities:** 2 vectors (direct · indirect) · 5 strategies · canary-based override rate · real-payload track · per-strategy/vector breakdown · executive report · resumable checkpointing
+
+**Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0040) · OWASP LLM Top 10 (LLM01, LLM08) · NIST AI 600-1 (§2.6) · EU AI Act (Art. 15)
+
+<div align="center">
+
+[Full NB03 design & methodology →](docs/03_prompt_injection.md)  ·  [Open notebook →](notebooks/03_prompt_injection.ipynb)
+
+</div>
 
 ---
 
@@ -280,7 +291,7 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | ✅ | **Human Review Queue** | Prioritises adversarial examples by flip + stealth for manual inspection | All | HIGH / MEDIUM / LOW |
 | ✅ | **Composite Stealth Scoring** | Semantic similarity + perplexity ratio + normalised edit distance — richer imperceptibility signal than cosine similarity alone | All | Weighted composite |
 | ✅ | **Jailbreak Success Rate (ASR)** | Fraction of jailbreak prompts that elicit a policy-violating response, judged by a BART-MNLI classifier | JailbreakBench (100 behaviors) | Jailbreak ASR |
-| 🔜 | **Prompt Injection Success Rate** | Fraction of injected instructions that override the system prompt or change model behaviour | Custom · indirect RAG | Override rate |
+| ✅ | **Prompt Injection Success Rate** | Fraction of injected instructions that override the system prompt or change model behaviour | Canary benchmark · `deepset/prompt-injections` | Override rate |
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
 | 📋 | **Counterfactual Fairness** | Does swapping a protected attribute (name, gender, race) change the model's output? | Custom templates | Flip rate by attribute |
 | 📋 | **Factuality Robustness** | Does injecting a false premise into a QA question cause the model to accept it? | TriviaQA · NaturalQuestions | Fact-acceptance rate |
@@ -298,7 +309,7 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 |---|:---:|---|
 | [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 10 adversarial attacks × SST-2 — 5 perturbation levels, accuracy drop, composite stealth scoring, risk matrix, human review queue, executive report. [Results →](docs/01_adversarial_nlp.md) |
 | [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | Three-mode jailbreak evaluation — direct goals, artifact templates, PAIR transfer; BART-MNLI judge, incremental checkpointing, regulatory mapping. [Results →](docs/02_jailbreaking.md) |
-| [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | 🔜 | Direct and indirect (RAG) prompt injection — override rate and payload taxonomy |
+| [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | ✅ | Direct + indirect prompt injection — 5-strategy taxonomy, canary override-rate metric, real-world payloads, executive report. [Design →](docs/03_prompt_injection.md) |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | 📋 | Demographic swap testing — attribute-level flip rates and fairness metrics |
 | [`05_nli_robustness.ipynb`](notebooks/05_nli_robustness.ipynb) | 📋 | Adversarial robustness on AdvGLUE + ANLI — cross-task coverage beyond sentiment |
 
