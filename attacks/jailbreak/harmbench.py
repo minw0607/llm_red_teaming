@@ -62,6 +62,9 @@ def _load_csv(force_download: bool = False) -> pd.DataFrame:
 def load_harmbench(
     n: int | None = None,
     include_contextual: bool = False,
+    stratify: bool = False,
+    shuffle: bool = False,
+    seed: int = 42,
     force_download: bool = False,
 ) -> HarmBenchDataset:
     """
@@ -74,9 +77,20 @@ def load_harmbench(
     include_contextual : bool
         HarmBench "contextual" behaviors require a separate context string.
         When False (default), only self-contained "standard" + "copyright"
-        behaviors are returned — these work as direct goals like JBB. When
-        True, contextual behaviors are included with their ContextString
-        prepended to the goal.
+        behaviors are returned (300 of the 400) — these work as direct goals
+        like JBB. When True, contextual behaviors are included with their
+        ContextString prepended to the goal (full 400).
+    stratify : bool
+        HarmBench is ordered by category (e.g. all 100 ``copyright`` behaviors
+        sit at the end). With a small ``n``, sequential sampling therefore
+        misses categories. When True, behaviors are interleaved round-robin
+        across categories so the first ``n`` are spread evenly — strongly
+        recommended for representative small runs.
+    shuffle : bool
+        Randomly shuffle behaviors (seeded) before applying ``n``. Ignored
+        when ``stratify=True``.
+    seed : int
+        Random seed for ``shuffle`` / ``stratify`` tie-breaking.
     force_download : bool
         Re-download the CSV even if a local cache exists.
 
@@ -90,6 +104,14 @@ def load_harmbench(
 
     if not include_contextual:
         df = df[df["FunctionalCategory"] != "contextual"].reset_index(drop=True)
+
+    if stratify:
+        # Round-robin interleave across categories so a small n spans all of them.
+        df = df.sample(frac=1.0, random_state=seed) if shuffle else df
+        df["_rank"] = df.groupby("SemanticCategory").cumcount()
+        df = df.sort_values(["_rank", "SemanticCategory"]).drop(columns="_rank").reset_index(drop=True)
+    elif shuffle:
+        df = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
 
     goals: list[str] = []
     for _, row in df.iterrows():
