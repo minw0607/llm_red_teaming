@@ -35,8 +35,8 @@ results/*.csv
 # Explicitly keep the bundled datasets
 !data/**
 
-# HarmBench behavior cache — downloaded on demand by load_harmbench(),
-# not committed (published dataset of harmful instructions; fetch at runtime)
+# Downloaded-on-demand dataset caches (HarmBench behaviors, deepset prompt
+# injections) — fetched at runtime by their loaders, not committed
 eval_datasets/safety/
 
 # Sensitive / large model files
