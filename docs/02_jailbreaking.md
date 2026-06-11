@@ -114,6 +114,8 @@ The notebook auto-generates a business-level HTML report (Step 9) — the jailbr
 
 📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/jailbreak_executive_summary.html)** · [Raw HTML](samples/jailbreak_executive_summary.html) *(JailbreakBench n=100, LLM judge · model name redacted)*
 
+> ⚠️ **Illustrative sample only** — the figures come from an automated judge that produces occasional false positives (the single flagged "violation" in this sample is a borderline case, not a confirmed failure). The report demonstrates the reporting *format*; it is not an authoritative safety verdict of any model, and all flagged violations require human validation.
+
 ---
 
 ## Saved Outputs

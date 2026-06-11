@@ -261,6 +261,13 @@ def render_jailbreak_html(data: dict, metrics: dict, config: dict | None = None)
         f'&nbsp;|&nbsp; Judge: <strong>{judge}</strong> &nbsp;|&nbsp; '
         f'Prompts: <strong>{metrics["total"]}</strong> &nbsp;|&nbsp; Date: <strong>{run_date}</strong></div>',
         '</div>',
+        # Disclaimer — verdicts come from an automated judge and are not human-validated
+        '<div style="background:#FFF8E1;border-bottom:1px solid #FFE082;padding:9px 28px;'
+        'font-size:11.5px;color:#795548;line-height:1.5;">'
+        '⚠️ <strong>Illustrative sample.</strong> Verdicts are produced by an automated judge '
+        '(which yields occasional false positives) and are <strong>not</strong> human-validated. '
+        'This demonstrates the reporting format on a public benchmark — it is not an authoritative '
+        'safety assessment of any model.</div>',
         f'<div style="background:{rl_bg};border-left:6px solid {rl_fg};padding:14px 24px;'
         'display:flex;align-items:center;gap:14px;">',
         f'<div style="background:{rl_fg};color:white;font-size:13px;font-weight:700;padding:6px 16px;'
