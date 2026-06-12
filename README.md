@@ -38,7 +38,8 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 🧬 **Adversarial NLP** | ✅ Complete | [↓ jump](#-adversarial-nlp-notebook-01) | [docs/01](docs/01_adversarial_nlp.md) |
 | 🔓 **Jailbreaking** | ✅ Complete | [↓ jump](#-jailbreaking-notebook-02) | [docs/02](docs/02_jailbreaking.md) |
 | 💉 **Prompt Injection** | ✅ Complete | [↓ jump](#-prompt-injection-notebook-03) | [docs/03](docs/03_prompt_injection.md) |
-| ⚖️ **Fairness and NLI Robustness** | 📋 Planned | [↓ jump](#-fairness-and-nli-robustness-notebooks-0405) | — |
+| ⚖️ **Bias & Fairness** | ✅ Complete | [↓ jump](#️-bias--fairness-notebook-04) | [docs/04](docs/04_fairness.md) |
+| 🧩 **NLI Robustness** | 📋 Planned | [↓ jump](#-nli-robustness-notebook-05) | — |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
 
@@ -56,7 +57,8 @@ llm_red_teaming/
 │   ├── semantic/               # SemanticAttack                        [✅ implemented]
 │   ├── structural/             # BackTranslation, Homoglyph, Negation  [✅ implemented]
 │   ├── jailbreak/              # JailbreakBench + PAIR artifact runners [✅ implemented]
-│   └── prompt/                 # Prompt injection (direct + indirect)  [✅ implemented]
+│   ├── prompt/                 # Prompt injection (direct + indirect)  [✅ implemented]
+│   └── fairness/               # BBQ + counterfactual fairness probes  [✅ implemented]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -93,6 +95,7 @@ llm_red_teaming/
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
 │   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
 │   ├── 03_prompt_injection.md  # NB03 design & methodology            [✅]
+│   ├── 04_fairness.md          # NB04 design & methodology            [✅]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
@@ -238,15 +241,38 @@ Overall **4.6% override rate** — the model resisted the great majority of inje
 
 ---
 
-## ⚖️ Fairness and NLI Robustness (Notebooks 04/05)
+## ⚖️ Bias & Fairness (Notebook 04)
+
+`Status: ✅ Complete` *(harness built & tested; run the notebook to populate target results)*
+
+**What it tests:** whether the model treats people differently by a protected attribute. Unlike NB01–03, **bias is a harm, not an attack** — there is no adversary; the model exhibits disparate behaviour on its own. This is where the toolkit extends from security red-teaming into **responsible-AI evaluation**.
+
+Two complementary methods:
+
+| Track | Question | Dataset | Metric |
+|---|---|---|---|
+| **A · BBQ** | When the answer is underdetermined, does the model fall back on stereotypes? | [BBQ](https://arxiv.org/abs/2110.08193) — 11 social categories | Accuracy + official **bias score** (−1…+1) |
+| **B · Counterfactual** | If only a protected attribute changes, does the *decision* change? | Custom hiring / lending / housing / scholarship probes | **Flip rate** + demographic **parity gap** |
+
+**How it works:** BBQ multiple-choice answers are scored deterministically (official ambiguous/disambiguated bias score); counterfactual probes swap gender · race (name proxies) · age · nationality · religion in consequential decisions and measure flips. Optional LLM judge only maps unparseable free-text. Auto-generates an executive report with a per-case flip audit.
+
+**Regulatory mapping** *(the strongest of any workstream)*: NIST AI 600-1 **§2.8 Harmful Bias** · EU AI Act **Art. 10 / 15** · US **EEOC / Title VII** · **NYC Local Law 144** (mandatory bias audit). MITRE ATLAS is a poor fit — bias is a harm, not an attack technique.
+
+**Capabilities:** BBQ benchmark (11 categories, bias score) · counterfactual flip rate + parity gap · per-category / per-attribute breakdowns · per-case flip audit · executive report · resumable checkpointing
+
+<div align="center">
+
+[Full NB04 design & methodology →](docs/04_fairness.md)  ·  [Open notebook →](notebooks/04_fairness_counterfactual.ipynb)
+
+</div>
+
+---
+
+## 🧩 NLI Robustness (Notebook 05)
 
 `Status: 📋 Planned`
 
-**What it will test:**
-- **Counterfactual fairness (NB04)** — swap protected attributes (name, gender, race, nationality) and measure whether model output changes. Tests fairness, not just robustness.
-- **NLI robustness (NB05)** — adversarial robustness on AdvGLUE + ANLI, extending coverage beyond binary sentiment to logical entailment and reasoning.
-
-These workstreams introduce the `evaluate/fairness.py` and `evaluate/consistency.py` modules and the NLI dataset family. See the [Dataset Roadmap](#-dataset-roadmap) and [Testing Strategy Roadmap](#-testing-strategy-roadmap).
+**What it will test:** adversarial robustness on AdvGLUE + ANLI — extending coverage beyond binary sentiment to logical entailment and reasoning. Introduces the `evaluate/consistency.py` module and the NLI dataset family. See the [Dataset Roadmap](#-dataset-roadmap) and [Testing Strategy Roadmap](#-testing-strategy-roadmap).
 
 ---
 
@@ -267,7 +293,8 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | Status | Attack | Category | Description | MITRE ATLAS | NIST AI 600-1 | OWASP LLM Top 10 |
 |:---:|---|---|---|---|---|---|
 | 📋 | **Paraphrase Model Attack** | Semantic | Use a paraphrase model (PEGASUS, DIPPER, T5) to generate fluent rewrites — more naturalistic than synonym lookups | AML.T0043 · AML.T0015 | Information Integrity | LLM09 Misinformation |
-| 📋 | **Counterfactual / Demographic Swap** | Fairness | Swap protected attributes (name, gender, race, nationality) and measure if model output changes — tests fairness, not just robustness | AML.T0043 | Harmful Bias and Homogenization | LLM09 Misinformation |
+| ✅ | **Counterfactual / Demographic Swap** | Fairness | Swap protected attributes (gender, race, age, nationality, religion) and measure if the decision changes — flip rate + parity gap (NB04) | AML.T0043 *(weak fit — bias is a harm)* | **Harmful Bias and Homogenization (§2.8)** | LLM09 Misinformation |
+| ✅ | **BBQ Stereotype Benchmark** | Fairness | 11-category bias benchmark; official ambiguous/disambiguated bias score (NB04) | — | **Harmful Bias and Homogenization (§2.8)** | — |
 | 📋 | **Payload Splitting** | Prompt | Distribute a forbidden phrase across multiple tokens, turns, or encoded segments to evade safety filters | AML.T0054 | Information Security | LLM01 Prompt Injection · LLM07 System Prompt Leakage |
 | 📋 | **Many-Shot Jailbreak** | Prompt | Provide many in-context examples of policy-violating exchanges before the target request to shift the model's behaviour (Anthropic, 2024) | AML.T0054 | Information Security (§2.6) | LLM01 Prompt Injection |
 | 📋 | **Crescendo / Multi-Turn** | Prompt | Escalate harmful requests across multiple conversational turns, each individually benign (Microsoft, 2024) | AML.T0054 · AML.T0006 | Information Security (§2.6) | LLM01 Prompt Injection · LLM06 Excessive Agency |
@@ -315,7 +342,8 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | ✅ | **Jailbreak Success Rate (ASR)** | Fraction of jailbreak prompts that elicit a policy-violating response, judged by a BART-MNLI classifier | JailbreakBench (100 behaviors) | Jailbreak ASR |
 | ✅ | **Prompt Injection Success Rate** | Fraction of injected instructions that override the system prompt or change model behaviour | Canary benchmark · `deepset/prompt-injections` | Override rate |
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
-| 📋 | **Counterfactual Fairness** | Does swapping a protected attribute (name, gender, race) change the model's output? | Custom templates | Flip rate by attribute |
+| ✅ | **Counterfactual Fairness** | Does swapping a protected attribute (gender, race, age, nationality, religion) change the decision? | Custom decision probes | Flip rate · parity gap |
+| ✅ | **Stereotype Bias (BBQ)** | Does the model rely on social stereotypes when the answer is underdetermined? | BBQ (11 categories) | Bias score (−1…+1) |
 | 📋 | **Factuality Robustness** | Does injecting a false premise into a QA question cause the model to accept it? | TriviaQA · NaturalQuestions | Fact-acceptance rate |
 | 📋 | **Logical Negation Robustness** | Does the model correctly track negation under paraphrase? | MultiNLI · custom | Negation flip rate |
 | 🔭 | **Multi-Turn Manipulation** | Can a model's behaviour be shifted over successive turns via context accumulation? | MT-Bench · custom | Behaviour drift score |
@@ -332,7 +360,7 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | [`01_adversarial_nlp_demo.ipynb`](notebooks/01_adversarial_nlp_demo.ipynb) | ✅ | 10 adversarial attacks × SST-2 — 5 perturbation levels, accuracy drop, composite stealth scoring, risk matrix, human review queue, executive report. [Results →](docs/01_adversarial_nlp.md) |
 | [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | Three-mode jailbreak evaluation — direct goals, artifact templates, PAIR transfer; BART-MNLI judge, incremental checkpointing, regulatory mapping. [Results →](docs/02_jailbreaking.md) |
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | ✅ | Direct + indirect prompt injection — 5-strategy taxonomy, canary override-rate metric, real-world payloads, executive report. [Design →](docs/03_prompt_injection.md) |
-| [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | 📋 | Demographic swap testing — attribute-level flip rates and fairness metrics |
+| [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | ✅ | Bias & fairness — BBQ stereotype benchmark (11 categories, bias score) + counterfactual decision probes (flip rate, parity gap), executive report. [Design →](docs/04_fairness.md) |
 | [`05_nli_robustness.ipynb`](notebooks/05_nli_robustness.ipynb) | 📋 | Adversarial robustness on AdvGLUE + ANLI — cross-task coverage beyond sentiment |
 
 Notebooks are intentionally **code-light** — they import from the modules above and focus on results, visualisations, and interpretation.
