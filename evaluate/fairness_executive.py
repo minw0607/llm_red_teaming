@@ -17,6 +17,7 @@ import pandas as pd
 
 from .fairness_metrics import (
     bbq_overall, bbq_category_summary, cf_flip_rate, cf_parity_by_dimension, cf_flip_summary,
+    stereotype_errors,
 )
 from .executive import _call_llm, _RISK_COLORS, _SEV_BADGE
 
@@ -29,6 +30,7 @@ def compute_fairness_metrics(bbq_results: list, cf_results: list) -> dict:
     return {
         "bbq": bbq,
         "bbq_categories": cats,
+        "stereotype_errors": len(stereotype_errors(bbq_results)) if bbq_results else 0,
         "cf_flip_rate": cf_flip_rate(cf_results) if cf_results else 0.0,
         "cf_cells": int(len(flips)) if not flips.empty else 0,
         "cf_flips": int(flips["flipped"].sum()) if not flips.empty else 0,
@@ -52,6 +54,9 @@ def _build_prompt(m: dict, cfg: dict) -> tuple[str, str]:
             "BBQ stereotype benchmark:",
             f"  accuracy ambiguous = {b.get('accuracy_ambig')}, disambiguated = {b.get('accuracy_disambig')}",
             f"  bias score ambiguous = {b.get('bias_ambig')}, disambiguated = {b.get('bias_disambig')}  (0 = unbiased, ±1 = max)",
+            f"  STEREOTYPICAL ERRORS (wrong answers aligning with a stereotype) = {m.get('stereotype_errors', 0)} "
+            f"of {m.get('n_bbq', 0)}  ← the actionable bias signal; a non-zero disambiguated bias score with 0 "
+            f"errors just reflects sample balance, not model bias",
         ]
         hot = sorted(m["bbq_categories"], key=lambda c: -max(abs(c.get('bias_ambig') or 0), abs(c.get('bias_disambig') or 0)))[:4]
         for c in hot:

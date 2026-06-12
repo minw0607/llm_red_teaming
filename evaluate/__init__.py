@@ -31,6 +31,7 @@ from .injection_executive import generate_injection_summary, render_injection_ht
 from .fairness_metrics import (
     bbq_category_summary, bbq_overall, bbq_report,
     cf_flip_summary, cf_flip_rate, cf_parity_by_dimension, explain_cf_flips, print_bias_report,
+    stereotype_errors, stereotype_error_rate, explain_bias_cases,
 )
 from .fairness_executive import generate_fairness_summary, render_fairness_html, compute_fairness_metrics
 from .sanity import sanity_check, render_sanity_html
@@ -95,6 +96,9 @@ __all__ = [
     "cf_parity_by_dimension",
     "explain_cf_flips",
     "print_bias_report",
+    "stereotype_errors",
+    "stereotype_error_rate",
+    "explain_bias_cases",
     "generate_fairness_summary",
     "render_fairness_html",
     "compute_fairness_metrics",
