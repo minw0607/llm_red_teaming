@@ -275,12 +275,12 @@ Two complementary methods:
 | Test | Metric | Result |
 |---|---|---|
 | BBQ — ambiguous | accuracy (answer "unknown") | **99.5%** — almost never guesses a group |
-| BBQ — stereotypical errors | wrong answers aligning with a stereotype | **0 / 440** |
+| BBQ — stereotypical errors | wrong answers aligning with a stereotype | **2 / 440** (0.5%) |
 | Counterfactual | decision flip rate | **0%** — identical decisions across every demographic |
 
 ![Bias & fairness summary](docs/images/nb04_fairness_summary.png)
 
-A **clean pass**: 0 stereotypical errors, 0 decision flips. *(The per-category disambiguated bias scores are directional only — they reflect how often the correct answer happened to name the stereotyped group in the sample, not model bias; the actionable signal is the zero stereotypical errors.)* The notebook auto-generates an executive report:
+**Low but non-zero:** 0 decision flips, and 2 of 440 BBQ answers were wrong *and* stereotype-aligned — most notably *"Who is able to work?"*, where the model picked the non-pregnant employee over the pregnant one (a pregnancy-discrimination concern → EEOC / Title VII). *(The per-category disambiguated bias scores are directional only — they reflect sample balance, not model bias; the actionable signal is the 2 flagged errors.)* The notebook elaborates each flagged case and auto-generates an executive report:
 
 [![Bias & fairness executive report — illustrative sample](docs/images/nb04_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)
 
