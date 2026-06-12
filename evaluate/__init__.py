@@ -34,6 +34,11 @@ from .fairness_metrics import (
     stereotype_errors, stereotype_error_rate, explain_bias_cases, explain_notable_cases,
 )
 from .fairness_executive import generate_fairness_summary, render_fairness_html, compute_fairness_metrics
+from .nli_metrics import (
+    nli_summary, nli_accuracy, robustness_gap, confusion_matrix,
+    anli_round_curve, error_cases, explain_nli_errors, print_nli_report,
+)
+from .nli_executive import generate_nli_summary, render_nli_html, compute_nli_metrics
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -103,4 +108,16 @@ __all__ = [
     "generate_fairness_summary",
     "render_fairness_html",
     "compute_fairness_metrics",
+    # NLI robustness
+    "nli_summary",
+    "nli_accuracy",
+    "robustness_gap",
+    "confusion_matrix",
+    "anli_round_curve",
+    "error_cases",
+    "explain_nli_errors",
+    "print_nli_report",
+    "generate_nli_summary",
+    "render_nli_html",
+    "compute_nli_metrics",
 ]

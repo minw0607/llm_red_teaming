@@ -39,6 +39,7 @@ results/*.csv
 # injections, BBQ bias benchmark) — fetched at runtime by their loaders
 eval_datasets/safety/
 eval_datasets/fairness/
+eval_datasets/robustness/
 
 # Sensitive / large model files
 *.bin

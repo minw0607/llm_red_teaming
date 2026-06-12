@@ -39,7 +39,7 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 🔓 **Jailbreaking** | ✅ Complete | [↓ jump](#-jailbreaking-notebook-02) | [docs/02](docs/02_jailbreaking.md) |
 | 💉 **Prompt Injection** | ✅ Complete | [↓ jump](#-prompt-injection-notebook-03) | [docs/03](docs/03_prompt_injection.md) |
 | ⚖️ **Bias & Fairness** | ✅ Complete | [↓ jump](#️-bias--fairness-notebook-04) | [docs/04](docs/04_fairness.md) |
-| 🧩 **NLI Robustness** | 📋 Planned | [↓ jump](#-nli-robustness-notebook-05) | — |
+| 🧩 **NLI Robustness** | 🛠️ Built — run pending | [↓ jump](#-nli-robustness-notebook-05) | [docs/05](docs/05_nli_robustness.md) |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
 
@@ -80,22 +80,24 @@ llm_red_teaming/
 │
 ├── eval_datasets/              # Evaluation datasets
 │   ├── sst2/                   # SST-2 sentiment benchmark             [✅ implemented]
-│   ├── nli/                    # SNLI, MultiNLI, ANLI, AdvGLUE         [📋 planned]
-│   ├── toxicity/               # ToxiGen, HateXplain                   [📋 planned]
-│   └── safety/                 # AdvBench, HarmBench jailbreak banks   [📋 planned]
+│   ├── robustness/             # MultiNLI, ANLI, AdvGLUE (cached)      [✅ implemented]
+│   ├── safety/                 # JailbreakBench, HarmBench, deepset    [✅ implemented]
+│   ├── fairness/               # BBQ stereotype bank (cached)          [✅ implemented]
+│   └── toxicity/               # ToxiGen, HateXplain                   [📋 planned]
 │
 ├── notebooks/                  # Lightweight demo notebooks
-│   ├── 01_adversarial_nlp_demo.ipynb   # 10 attacks × SST-2 [✅]
-│   ├── 02_jailbreaking_demo.ipynb      # JailbreakBench    [✅]
-│   ├── 03_prompt_injection.ipynb       # Direct + indirect  [🔜]
-│   ├── 04_fairness_counterfactual.ipynb # Demographic swap  [📋]
-│   └── 05_nli_robustness.ipynb         # AdvGLUE + ANLI    [📋]
+│   ├── 01_adversarial_nlp_demo.ipynb     # 10 attacks × SST-2   [✅]
+│   ├── 02_jailbreaking_demo.ipynb        # JailbreakBench       [✅]
+│   ├── 03_prompt_injection.ipynb         # Direct + indirect    [✅]
+│   ├── 04_fairness_counterfactual.ipynb  # Demographic swap     [✅]
+│   └── 05_nli_robustness_demo.ipynb      # MultiNLI/ANLI/AdvGLUE [🛠️]
 │
 ├── docs/                       # Per-workstream results & deep dives
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
 │   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
 │   ├── 03_prompt_injection.md  # NB03 design & methodology            [✅]
 │   ├── 04_fairness.md          # NB04 design & methodology            [✅]
+│   ├── 05_nli_robustness.md    # NB05 design & methodology            [🛠️]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
@@ -300,9 +302,15 @@ Two complementary methods:
 
 ## 🧩 NLI Robustness (Notebook 05)
 
-`Status: 📋 Planned`
+`Status: 🛠️ Built — live run pending`
 
-**What it will test:** adversarial robustness on AdvGLUE + ANLI — extending coverage beyond binary sentiment to logical entailment and reasoning. Introduces the `evaluate/consistency.py` module and the NLI dataset family. See the [Dataset Roadmap](#-dataset-roadmap) and [Testing Strategy Roadmap](#-testing-strategy-roadmap).
+**What it tests:** whether the model still **reasons correctly** when the input is crafted to fool it. Natural Language Inference (NLI) asks the model to decide whether a hypothesis is **entailed by**, **neutral to**, or **contradicts** a premise — the canonical probe of reasoning over text (fact-checking, RAG faithfulness, policy analysis). Unlike NB01, the attack isn't an algorithm we run — the **dataset is the adversary**: [ANLI](https://arxiv.org/abs/1910.14599) items were written by humans specifically to break strong models.
+
+**Headline metric — the robustness gap:** clean accuracy ([MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli)) minus adversarial accuracy ([ANLI](https://arxiv.org/abs/1910.14599) R1/R2/R3 + [AdvGLUE](https://arxiv.org/abs/2111.02840)). A model can score 90%+ on ordinary NLI yet collapse on adversarial NLI — that gap is the reliability story. ANLI ships a human **`reason`** annotation per item, so every misclassification comes with an explanation of *why it's hard*.
+
+**Capabilities:** 3 datasets (MultiNLI · ANLI ×3 rounds · AdvGLUE) · single 3-way label space · deterministic scoring · robustness gap + ANLI difficulty curve + confusion matrix · ANLI-annotated error analysis · executive report · resumable checkpointing.
+
+> The harness, metrics and report are built and validated end-to-end; charts + executive screenshot + sample report are published here after a run against the assessed model, as for NB01–04. [Design & methodology →](docs/05_nli_robustness.md) · [Open notebook →](notebooks/05_nli_robustness_demo.ipynb)
 
 ---
 
@@ -314,7 +322,7 @@ All attacks map to four industry frameworks:
 - **[OWASP LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/)** — application-layer LLM security risks (2025)
 - **[EU AI Act](https://artificialintelligenceact.eu/)** — high-risk AI system obligations (2024/1689)
 
-Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Research horizon
+Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next milestone · 📋 Planned · 🔭 Research horizon
 
 > **Implemented attacks** are documented per-workstream above — see [docs/01](docs/01_adversarial_nlp.md) (10 adversarial NLP attacks) and [docs/02](docs/02_jailbreaking.md) (jailbreak modes), each with full standards mapping. The tables below cover **future** work.
 
@@ -355,9 +363,9 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | ✅ | **HarmBench** | Safety / jailbreak | 400 behaviors across 7 harm categories; published ASR baselines (NB02) | [HarmBench](https://github.com/centerforaisafety/HarmBench) |
 | ✅ | **deepset/prompt-injections** | Prompt injection | 203 real-world injection payloads for the LLM-judged track (NB03) | [HuggingFace](https://huggingface.co/datasets/deepset/prompt-injections) |
 | ✅ | **BBQ** | Bias / fairness | Bias Benchmark for QA — 11 social categories, ambiguous/disambiguated bias score (NB04) | [Parrish et al. 2022](https://github.com/nyu-mll/BBQ) |
-| 📋 | **AdvGLUE** | NLI, QA, sentiment | Already adversarially constructed; drop-in replacement for GLUE tasks | [Yang et al. 2021](https://arxiv.org/abs/2106.09680) |
-| 📋 | **ANLI** | 3-class entailment | Collected via adversarial human-in-the-loop; harder than SNLI | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
-| 📋 | **MultiNLI** | 3-class entailment | Tests logical reasoning robustness across 10 genres | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |
+| 🛠️ | **MultiNLI** | 3-class entailment | Clean NLI baseline — the robustness-gap reference (NB05) | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |
+| 🛠️ | **ANLI** | 3-class entailment | Human-in-the-loop adversarial NLI, 3 difficulty rounds + `reason` annotations (NB05) | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
+| 🛠️ | **AdvGLUE** | 3-class entailment | Adversarially-perturbed MNLI; second adversarial track (NB05) | [Wang et al. 2021](https://arxiv.org/abs/2111.02840) |
 | 📋 | **ToxiGen / HateXplain** | Toxicity classification | Safety-critical: does the model correctly flag hate speech after perturbation? | [ToxiGen](https://arxiv.org/abs/2203.09509) · [HateXplain](https://arxiv.org/abs/2012.10289) |
 | 📋 | **TriviaQA** | Open-domain QA | Does a factual answer change when the question is rephrased? | [HuggingFace](https://huggingface.co/datasets/trivia_qa) |
 | 🔭 | **MMLU** (select subsets) | Multi-domain MCQ | Domain-specific robustness (medical, legal, STEM) under prompt rephrasing | [HuggingFace](https://huggingface.co/datasets/cais/mmlu) |
@@ -376,6 +384,7 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
 | ✅ | **Counterfactual Fairness** | Does swapping a protected attribute (gender, race, age, nationality, religion) change the decision? | Custom decision probes | Flip rate · parity gap |
 | ✅ | **Stereotype Bias (BBQ)** | Does the model rely on social stereotypes when the answer is underdetermined? | BBQ (11 categories) | Bias score (−1…+1) |
+| 🛠️ | **NLI Reasoning Robustness** | Does the model still infer entailment correctly under adversarial pressure? | MultiNLI · ANLI · AdvGLUE | Robustness gap (clean − adv) |
 | 📋 | **Factuality Robustness** | Does injecting a false premise into a QA question cause the model to accept it? | TriviaQA · NaturalQuestions | Fact-acceptance rate |
 | 📋 | **Logical Negation Robustness** | Does the model correctly track negation under paraphrase? | MultiNLI · custom | Negation flip rate |
 | 🔭 | **Multi-Turn Manipulation** | Can a model's behaviour be shifted over successive turns via context accumulation? | MT-Bench · custom | Behaviour drift score |
@@ -393,7 +402,7 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | Three-mode jailbreak evaluation — direct goals, artifact templates, PAIR transfer; BART-MNLI judge, incremental checkpointing, regulatory mapping. [Results →](docs/02_jailbreaking.md) |
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | ✅ | Direct + indirect prompt injection — 5-strategy taxonomy, canary override-rate metric, real-world payloads, executive report. [Design →](docs/03_prompt_injection.md) |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | ✅ | Bias & fairness — BBQ stereotype benchmark (11 categories, bias score) + counterfactual decision probes (flip rate, parity gap), executive report. [Design →](docs/04_fairness.md) |
-| [`05_nli_robustness.ipynb`](notebooks/05_nli_robustness.ipynb) | 📋 | Adversarial robustness on AdvGLUE + ANLI — cross-task coverage beyond sentiment |
+| [`05_nli_robustness_demo.ipynb`](notebooks/05_nli_robustness_demo.ipynb) | 🛠️ | NLI reasoning robustness — MultiNLI baseline vs. ANLI (3 rounds) + AdvGLUE; robustness gap, ANLI difficulty curve, confusion matrix, ANLI-annotated error analysis, executive report. [Design →](docs/05_nli_robustness.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules above and focus on results, visualisations, and interpretation.
 
