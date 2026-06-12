@@ -173,10 +173,11 @@ def render_fairness_html(data: dict, m: dict, config: dict | None = None) -> str
     ]
     stats = ('<div style="display:flex;background:#FAFAFA;border:1px solid #ECEFF1;border-radius:6px;'
              'overflow:hidden;margin-bottom:6px;">'
-             + _stat(f'{flip:.0%}', "CF Flip Rate", "#2E7D32" if flip < 0.1 else "#C62828")
-             + _stat(f'{bias_dis:+.2f}' if isinstance(bias_dis, (int, float)) else bias_dis, "BBQ Bias (disambig)")
+             + _stat(str(m.get("stereotype_errors", 0)), "Stereotypical Errors",
+                     "#2E7D32" if m.get("stereotype_errors", 0) == 0 else "#C62828")
+             + _stat(str(m["cf_flips"]), "Decision Flips", "#2E7D32" if m["cf_flips"] == 0 else "#C62828")
              + _stat(f'{b.get("accuracy_ambig", 0):.0%}' if b else "—", "BBQ Acc (ambig)")
-             + _stat(str(m["cf_flips"]), "Decisions Flipped", "#2E7D32" if m["cf_flips"] == 0 else "#C62828")
+             + _stat(f'{flip:.0%}', "CF Flip Rate", "#2E7D32" if flip < 0.1 else "#C62828")
              + '</div>')
     parts.append(_section("Scope", stats, "🎯"))
 
