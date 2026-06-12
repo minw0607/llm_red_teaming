@@ -351,8 +351,10 @@ Status legend: ✅ Implemented · 🔜 Next milestone · 📋 Planned · 🔭 Re
 | Status | Dataset | Task | What it adds | Source |
 |:---:|---|---|---|---|
 | ✅ | **SST-2** | Binary sentiment | Baseline — fast to score, sensitive to lexical changes | [HuggingFace](https://huggingface.co/datasets/stanfordnlp/sst2) |
-| ✅ | **JailbreakBench** | Safety / jailbreak | 100 harmful behaviors + PAIR/GCG artifact library | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) |
-| 📋 | **HarmBench** | Safety / jailbreak | 400 behaviors across 7 harm categories; published ASR baselines | [HarmBench](https://github.com/centerforaisafety/HarmBench) |
+| ✅ | **JailbreakBench** | Safety / jailbreak | 100 harmful behaviors + PAIR/GCG artifact library (NB02) | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) |
+| ✅ | **HarmBench** | Safety / jailbreak | 400 behaviors across 7 harm categories; published ASR baselines (NB02) | [HarmBench](https://github.com/centerforaisafety/HarmBench) |
+| ✅ | **deepset/prompt-injections** | Prompt injection | 203 real-world injection payloads for the LLM-judged track (NB03) | [HuggingFace](https://huggingface.co/datasets/deepset/prompt-injections) |
+| ✅ | **BBQ** | Bias / fairness | Bias Benchmark for QA — 11 social categories, ambiguous/disambiguated bias score (NB04) | [Parrish et al. 2022](https://github.com/nyu-mll/BBQ) |
 | 📋 | **AdvGLUE** | NLI, QA, sentiment | Already adversarially constructed; drop-in replacement for GLUE tasks | [Yang et al. 2021](https://arxiv.org/abs/2106.09680) |
 | 📋 | **ANLI** | 3-class entailment | Collected via adversarial human-in-the-loop; harder than SNLI | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
 | 📋 | **MultiNLI** | 3-class entailment | Tests logical reasoning robustness across 10 genres | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |

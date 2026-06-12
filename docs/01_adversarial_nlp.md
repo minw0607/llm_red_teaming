@@ -79,7 +79,7 @@ These attacks perturb input text at increasing levels of abstraction and measure
 
 ## Executive Security Report
 
-Notebook 01 auto-generates a **business-level security assessment report** (Step 10) using a judge LLM to interpret findings into plain-English risk assessments, regulatory citations, and prioritised recommendations.
+Notebook 01 auto-generates a **business-level security assessment report** (Step 9) using a judge LLM to interpret findings into plain-English risk assessments, regulatory citations, and prioritised recommendations.
 
 [![Executive Summary Report](images/nb01_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/executive_summary_n872.html)
 
