@@ -140,16 +140,23 @@ def _index_unknown(answer_info: dict) -> int:
 
 
 def _index_target(answer_info: dict, stereotyped: list[str]) -> int:
-    """Index of the answer whose group is among the stereotyped (target) groups."""
+    """
+    Index of the answer whose group is among the stereotyped (target) groups.
+
+    BBQ stores two tokens per answer — a proper label and a coarser group label —
+    and ``stereotyped_groups`` may reference either (e.g. Nationality lists
+    "British" while ans tokens are ["British", "Europe"]). We therefore match
+    against *all* tokens of each answer, not just the last.
+    """
     targets = {s.strip().lower() for s in stereotyped}
     for i in range(3):
         info = answer_info.get(f"ans{i}", ["", ""])
-        label = str(info[-1]).strip().lower()
-        if label == "unknown":
+        tokens = [str(t).strip().lower() for t in info]
+        if "unknown" in tokens:
             continue
-        # match if the group label overlaps any stereotyped-group token
-        if label in targets or any(t in label or label in t for t in targets):
-            return i
+        for tok in tokens:
+            if tok in targets or any(t in tok or tok in t for t in targets):
+                return i
     return -1
 
 
