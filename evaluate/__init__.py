@@ -28,6 +28,11 @@ from .injection_metrics import (
     explain_overrides, print_override_report,
 )
 from .injection_executive import generate_injection_summary, render_injection_html, compute_injection_metrics
+from .fairness_metrics import (
+    bbq_category_summary, bbq_overall, bbq_report,
+    cf_flip_summary, cf_flip_rate, cf_parity_by_dimension, explain_cf_flips, print_bias_report,
+)
+from .fairness_executive import generate_fairness_summary, render_fairness_html, compute_fairness_metrics
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -81,4 +86,16 @@ __all__ = [
     # StrongREJECT graded scoring
     "strongreject_report",
     "strongreject_score",
+    # Fairness & bias
+    "bbq_category_summary",
+    "bbq_overall",
+    "bbq_report",
+    "cf_flip_summary",
+    "cf_flip_rate",
+    "cf_parity_by_dimension",
+    "explain_cf_flips",
+    "print_bias_report",
+    "generate_fairness_summary",
+    "render_fairness_html",
+    "compute_fairness_metrics",
 ]

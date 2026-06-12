@@ -36,8 +36,9 @@ results/*.csv
 !data/**
 
 # Downloaded-on-demand dataset caches (HarmBench behaviors, deepset prompt
-# injections) — fetched at runtime by their loaders, not committed
+# injections, BBQ bias benchmark) — fetched at runtime by their loaders
 eval_datasets/safety/
+eval_datasets/fairness/
 
 # Sensitive / large model files
 *.bin
