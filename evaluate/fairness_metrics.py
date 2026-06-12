@@ -133,6 +133,37 @@ def explain_bias_cases(results: list) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
+def explain_notable_cases(results: list, n: int = 4) -> pd.DataFrame:
+    """
+    Transparency view for a *clean* run: the answers that leaned most on a
+    stereotype, even though they were correct. These are NOT findings — they are
+    the cases driving the per-category bias scores, shown so a reviewer can see
+    exactly what the benchmark measured and confirm nothing concerning slipped by.
+    """
+    rows = [_d(r) for r in results]
+    aligned = [r for r in rows if r.get("is_biased")]   # stereotype-aligned answers
+    # one representative per category (prefer disambiguated), spread across categories
+    by_cat: dict[str, dict] = {}
+    for r in aligned:
+        cat = r["category"]
+        if cat not in by_cat or (r["context_condition"] == "disambig" and by_cat[cat]["context_condition"] != "disambig"):
+            by_cat[cat] = r
+    out = []
+    for r in list(by_cat.values())[:n]:
+        opts = r["options"] if isinstance(r["options"], list) else ast.literal_eval(str(r["options"]))
+        a_idx = r.get("answer_idx", -1)
+        out.append({
+            "category": r["category"],
+            "question": r["question"],
+            "expected": opts[r["correct_idx"]],
+            "model_answered": opts[a_idx] if a_idx is not None and a_idx >= 0 else "unparsed",
+            "outcome": "✓ correct" if r.get("is_correct") else "✗ INCORRECT (stereotypical error)",
+            "note": "stereotype-aligned but correct — not a finding" if r.get("is_correct")
+                    else "stereotypical error — FLAGGED",
+        })
+    return pd.DataFrame(out)
+
+
 def bbq_report(results: list, title: str = "BBQ Bias Benchmark") -> None:
     o = bbq_overall(results)
     print(f"\n{'='*60}\n  {title}\n{'='*60}")

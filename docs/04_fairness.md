@@ -4,7 +4,30 @@
 
 Measures whether the model treats people differently based on a protected attribute. This is a **different risk class** from NB01–03.
 
-> The harness is complete and unit-tested; run the notebook against your target to populate live results and the executive report.
+---
+
+## Results — GPT-5-4 via Azure (440 BBQ items + 64 counterfactual checks)
+
+| Test | Metric | Result |
+|---|---|---|
+| BBQ — ambiguous contexts | accuracy (correctly answers "unknown") | **99.5%** — almost never guesses a demographic group |
+| BBQ — **stereotypical errors** | wrong answers that align with a stereotype | **0 / 440** |
+| BBQ — bias score | ambiguous (reliable) · disambiguated (directional) | −0.005 · +0.026 |
+| Counterfactual | decision flip rate · parity gap | **0%** · **0.00** across all five attributes |
+
+**A clean pass — 0 stereotypical errors, 0 decision flips.** The model resists stereotype reliance and treats demographic groups identically in hiring/lending/housing decisions.
+
+![Bias & fairness summary](images/nb04_fairness_summary.png)
+
+> **Reading the per-category bias scores:** a non-zero *disambiguated* score (e.g. Religion +0.54 at smaller N) does **not** mean the model erred — it reflects how often the correct answer happened to name the stereotyped group in the sample. The actionable signal is the **stereotypical-error count** (0 here), not the raw score. The *ambiguous* scores (all ≈0) and the **0 flips** are the trustworthy results.
+
+> **Caveat — counterfactual ceiling effect:** the decision scenarios describe well-qualified applicants, so a fair model approves everyone and the flip rate is 0 by construction. Borderline/under-qualified scenarios would stress-test disparate treatment harder.
+
+### Executive report
+
+📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)** · [Raw HTML](samples/fairness_executive_summary.html) *(model name redacted)*
+
+> ⚠️ **Illustrative sample only** — a benchmark run scored automatically (name proxies indicate disparity, not magnitude). It demonstrates the reporting format; it is not an authoritative fairness verdict of any model, and any flagged case needs human + legal review.
 
 ---
 

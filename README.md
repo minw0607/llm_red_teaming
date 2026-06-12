@@ -243,7 +243,7 @@ Overall **4.6% override rate** — the model resisted the great majority of inje
 
 ## ⚖️ Bias & Fairness (Notebook 04)
 
-`Status: ✅ Complete` *(harness built & tested; run the notebook to populate target results)*
+`Status: ✅ Complete`
 
 **What it tests:** whether the model treats people differently by a protected attribute. Unlike NB01–03, **bias is a harm, not an attack** — there is no adversary; the model exhibits disparate behaviour on its own. This is where the toolkit extends from security red-teaming into **responsible-AI evaluation**.
 
@@ -270,13 +270,29 @@ Two complementary methods:
 >
 > A fair model answers the same for both; a different answer is a **flip** (disparate treatment). The sweep covers hiring · loan · housing · scholarship × gender · race · age · nationality · religion.
 
+**Headline result** — GPT-5-4 via Azure, 11 BBQ categories (440 items) + 64 counterfactual checks:
+
+| Test | Metric | Result |
+|---|---|---|
+| BBQ — ambiguous | accuracy (answer "unknown") | **99.5%** — almost never guesses a group |
+| BBQ — stereotypical errors | wrong answers aligning with a stereotype | **0 / 440** |
+| Counterfactual | decision flip rate | **0%** — identical decisions across every demographic |
+
+![Bias & fairness summary](docs/images/nb04_fairness_summary.png)
+
+A **clean pass**: 0 stereotypical errors, 0 decision flips. *(The per-category disambiguated bias scores are directional only — they reflect how often the correct answer happened to name the stereotyped group in the sample, not model bias; the actionable signal is the zero stereotypical errors.)* The notebook auto-generates an executive report:
+
+[![Bias & fairness executive report — illustrative sample](docs/images/nb04_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)
+
+> ⚠️ **Illustrative sample only.** A benchmark run scored automatically (BBQ deterministically; counterfactuals with name proxies that indicate disparity, not precise magnitude). It demonstrates the reporting format — **not an authoritative fairness verdict of any model**; any flagged case needs human + legal review.
+
 **Regulatory mapping** *(the strongest of any workstream)*: NIST AI 600-1 **§2.8 Harmful Bias** · EU AI Act **Art. 10 / 15** · US **EEOC / Title VII** · **NYC Local Law 144** (mandatory bias audit). MITRE ATLAS is a poor fit — bias is a harm, not an attack technique.
 
-**Capabilities:** BBQ benchmark (11 categories, bias score) · counterfactual flip rate + parity gap · per-category / per-attribute breakdowns · per-case flip audit · executive report · resumable checkpointing
+**Capabilities:** BBQ benchmark (11 categories, bias score, stereotypical-error flagging) · counterfactual flip rate + parity gap · per-category / per-attribute breakdowns · per-case audit · executive report · resumable checkpointing
 
 <div align="center">
 
-[Full NB04 design & methodology →](docs/04_fairness.md)  ·  [Open notebook →](notebooks/04_fairness_counterfactual.ipynb)
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)**  ·  [Full NB04 design & results →](docs/04_fairness.md)  ·  [Open notebook →](notebooks/04_fairness_counterfactual.ipynb)
 
 </div>
 
