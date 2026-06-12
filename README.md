@@ -199,7 +199,7 @@ Like NB01, the notebook auto-generates a **business-level executive report** (ju
 
 ## 💉 Prompt Injection (Notebook 03)
 
-`Status: ✅ Complete` *(harness built & tested; run the notebook to populate target results)*
+`Status: ✅ Complete`
 
 **What it tests:** whether adversarial instructions can override the system prompt or hijack model behaviour — both directly (in user input) and indirectly (via content the model retrieves).
 
@@ -210,13 +210,29 @@ Like NB01, the notebook auto-generates a **business-level executive report** (ju
 
 **How it works:** 5 injection strategies from the [Open-Prompt-Injection taxonomy](https://arxiv.org/abs/2310.12815) (naive · escape · context-ignoring · fake-completion · combined) × 3 base tasks × both vectors, plus real-world payloads from [`deepset/prompt-injections`](https://huggingface.co/datasets/deepset/prompt-injections). Success is measured deterministically by **canary detection** (each injection asks the model to emit a unique marker; the marker appearing = override) — no judge needed for the core **override-rate** metric. Real payloads (no canary) are LLM-judged.
 
-**Capabilities:** 2 vectors (direct · indirect) · 5 strategies · canary-based override rate · real-payload track · per-strategy/vector breakdown · executive report · resumable checkpointing
+**Headline result** — GPT-5-4 via Azure, 280 injection attempts:
+
+| Vector | N | Override Rate | Note |
+|---|---|---|---|
+| **Direct** (canary) | 40 | 12.5% | All on the `translate` task — largely a measurement artifact (the model *translates* the injected text, marker and all) rather than true obedience |
+| **Indirect** (canary) | 40 | **0.0%** | Held across every strategy (with a document-guard system prompt) |
+| **Real payloads** (LLM-judged) | 200 | 4.0% | The reliable signal — partial-compliance cases where the summary gets contaminated |
+
+![Prompt injection override rates](docs/images/nb03_override_rates.png)
+
+Overall **4.6% override rate** — the model resisted the great majority of injections; the meaningful finding is ~4% partial compliance on real-world payloads. The notebook auto-generates an executive report (judge LLM narrative, deterministic metrics):
+
+[![Prompt injection executive report — illustrative sample](docs/images/nb03_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/injection_executive_summary.html)
+
+> ⚠️ **Illustrative sample only.** Generated from a benchmark run; the real-payload track is automated-judge-scored and the `translate` direct-injection figures include a measurement artifact (flagged in-notebook). It demonstrates the reporting format — **not an authoritative security verdict of any model**; all flagged cases require human validation.
+
+**Capabilities:** 2 vectors (direct · indirect) · 5 strategies · canary-based override rate · real-payload track · per-strategy/vector breakdown · per-case override audit · executive report · resumable checkpointing
 
 **Regulatory mapping:** MITRE ATLAS (AML.T0054, AML.T0040) · OWASP LLM Top 10 (LLM01, LLM08) · NIST AI 600-1 (§2.6) · EU AI Act (Art. 15)
 
 <div align="center">
 
-[Full NB03 design & methodology →](docs/03_prompt_injection.md)  ·  [Open notebook →](notebooks/03_prompt_injection.ipynb)
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/injection_executive_summary.html)**  ·  [Full NB03 design & results →](docs/03_prompt_injection.md)  ·  [Open notebook →](notebooks/03_prompt_injection.ipynb)
 
 </div>
 
