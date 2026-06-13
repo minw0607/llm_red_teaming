@@ -40,6 +40,7 @@ results/*.csv
 eval_datasets/safety/
 eval_datasets/fairness/
 eval_datasets/robustness/
+eval_datasets/privacy/
 
 # Sensitive / large model files
 *.bin

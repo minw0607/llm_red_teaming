@@ -100,6 +100,28 @@ None of these require architectural change — the `targets/`, `judges/`, and `e
 
 ---
 
+## Data Red-Teaming (NB06) — Alignment & Upgrade Path
+
+NB06 tests confidentiality (secret disclosure · memorization/PII · RAG exfiltration). The honest picture differs by track:
+
+| Track | Method alignment | Data alignment |
+|---|---|---|
+| 🅰 System-prompt disclosure | ✅ **Standard** — canary tokens are the industry mechanism; you must plant your own secret to detect a leak | 🟠 hand-written 8-strategy taxonomy; the field has larger attack corpora |
+| 🅱 Memorization / PII | ✅ method sound | 🟠→✅ **was** synthetic-only (a proxy); **now** also runs real **Enron** prefix→PII extraction via the LLM-PBE methodology |
+| 🅲 RAG exfiltration | ✅ **Standard** — canary in a planted/poisoned doc, as in AgentDojo | 🟠 small scenario set; scale with AgentDojo/deepset |
+
+**Key design point:** for the disclosure and exfiltration tracks, *custom canary probes are the correct, standard approach* — there is no public dataset substitute, because a leak is only detectable against a secret you planted. The genuine gap was the **memorization track**, where realistic measurement needs a real corpus.
+
+**Metric refinement (shipped):** the headline **sensitive-leak rate** now excludes benign public-domain *recall* (reproducing Shakespeare is a memorization *proxy*, not a confidentiality leak); recall is reported as a separate informational count. This corrects an earlier run that read as "HIGH risk / 50% memorization leak" when real sensitive leaks were zero.
+
+**Upgrade path (data):**
+1. **Enron / LLM-PBE PII extraction** *(shipped)* — `USE_ENRON` adds real training-data PII-extraction probes (`leak_type='memorized_pii'`), the same corpus used by LLM-PBE and DecodingTrust.
+2. **Tensor Trust** prompt-extraction corpus — replace the hand-written disclosure taxonomy with thousands of real attacks.
+3. **AgentDojo / deepset** — scale the RAG-exfiltration scenario set (deepset already powers NB03; AgentDojo powers NB07).
+4. **Membership inference** as a dedicated module (LLM-PBE includes it) — a distinct privacy attack from extraction.
+
+---
+
 ## References
 
 - HarmBench — [Mazeika et al., 2024](https://arxiv.org/abs/2402.04249)
@@ -112,3 +134,8 @@ None of these require architectural change — the `targets/`, `judges/`, and `e
 - StrongREJECT — [Souly et al., 2024](https://arxiv.org/abs/2402.10260)
 - In-the-Wild Jailbreak Prompts — [Shen et al., 2023](https://arxiv.org/abs/2308.03825)
 - Llama Guard — [Inan et al. (Meta), 2023](https://arxiv.org/abs/2312.06674)
+- LLM-PBE (LLM Privacy Benchmark) — [Li et al., VLDB 2024](https://arxiv.org/abs/2408.12787) · [Enron data](https://huggingface.co/datasets/LLM-PBE/enron-email)
+- DecodingTrust — [Wang et al., NeurIPS 2023](https://arxiv.org/abs/2306.11698)
+- Tensor Trust (prompt injection/extraction) — [Toyer et al., ICLR 2024](https://arxiv.org/abs/2311.01011)
+- AgentDojo — [Debenedetti et al., NeurIPS 2024](https://arxiv.org/abs/2406.13352)
+- PII-Compass (training-data PII extraction) — [Nakka et al., 2024](https://arxiv.org/abs/2407.02943)

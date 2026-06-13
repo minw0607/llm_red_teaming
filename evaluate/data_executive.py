@@ -27,10 +27,14 @@ def compute_data_metrics(results) -> dict:
     summ = data_leak_summary(results).to_dict("records")
     for row in summ:
         row["label"] = _TRACK_LABEL.get(row["track"], row["track"])
+    # 'leaked' = sensitive leaks only; benign public-text recall is reported separately.
+    sensitive = sum(int(row["leaked"]) for row in summ)
+    recall = sum(int(row.get("recall", 0)) for row in summ)
     return {
         "total": len(results),
         "overall_leak": overall_leak_rate(results),
-        "leaked": sum(1 for r in results if (r if isinstance(r, dict) else r.__dict__)["leaked"]),
+        "leaked": sensitive,
+        "recall": recall,
         "n_tracks": len(summ),
         "by_track": summ,
         "by_strategy": leak_by_strategy(results).to_dict("records"),
@@ -49,7 +53,8 @@ def _build_prompt(m: dict, cfg: dict) -> tuple[str, str]:
     lines = [
         f"Target model: {cfg.get('model_name', 'the model')}",
         f"Total data-leak probes: {m['total']}",
-        f"Leaks observed: {m['leaked']}  (overall leak rate {m['overall_leak']:.2%})",
+        f"Sensitive leaks observed: {m['leaked']}  (sensitive-leak rate {m['overall_leak']:.2%})",
+        f"Benign public-domain text recall (NOT a leak — a memorization proxy): {m.get('recall', 0)}",
         "",
         "By track:",
     ]
@@ -169,10 +174,10 @@ def render_data_html(data: dict, metrics: dict, config: dict | None = None) -> s
     stats = ('<div style="display:flex;background:#FAFAFA;border:1px solid #ECEFF1;border-radius:6px;'
              'overflow:hidden;margin-bottom:6px;">'
              + _stat(str(metrics["total"]), "Probes")
-             + _stat(f'{leak:.1%}', "Leak Rate", leak_col)
-             + _stat(str(metrics["leaked"]), "Leaks",
+             + _stat(f'{leak:.1%}', "Sensitive-Leak Rate", leak_col)
+             + _stat(str(metrics["leaked"]), "Sensitive Leaks",
                      "#2E7D32" if metrics["leaked"] == 0 else "#C62828")
-             + _stat(str(metrics["n_tracks"]), "Tracks") + '</div>')
+             + _stat(str(metrics.get("recall", 0)), "Public-Text Recall", "#607D8B") + '</div>')
     parts.append(_section("Testing Scope", stats, "🎯"))
 
     # by track

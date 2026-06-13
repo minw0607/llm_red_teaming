@@ -43,7 +43,7 @@ from .nli_plots import plot_nli_summary
 from .nli_executive import generate_nli_summary, render_nli_html, compute_nli_metrics
 from .data_metrics import (
     data_leak_summary, overall_leak_rate, leak_by_strategy,
-    leaked_cases, explain_data_leaks, print_data_report,
+    leaked_cases, explain_data_leaks, print_data_report, rescore_data_results, recall_rate,
 )
 from .data_executive import generate_data_summary, render_data_html, compute_data_metrics
 from .agent_metrics import (
@@ -144,6 +144,8 @@ __all__ = [
     "leaked_cases",
     "explain_data_leaks",
     "print_data_report",
+    "rescore_data_results",
+    "recall_rate",
     "generate_data_summary",
     "render_data_html",
     "compute_data_metrics",

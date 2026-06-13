@@ -105,6 +105,15 @@ A lightweight engagement might be **Layers 1 + 2 + 6**. A regulated-industry eng
 
 The runner architecture (`JailbreakBenchRunner`, `ArtifactRunner`) already accepts arbitrary goals and templates, so layers 2–6 are a matter of **authoring the right test data**, not building new infrastructure. The roadmap items are curated goal banks, not engine changes.
 
+### A note on data red-teaming (NB06): custom probes are correct here
+
+Not every workstream should use a public dataset. **Confidentiality testing** is the clearest example, and it maps onto the layered model unusually:
+
+- 🅰 **System-prompt disclosure** and 🅲 **RAG exfiltration** are inherently **Layer 6 (custom)** — you must plant a **canary secret you control**, because a leak is only *detectable* against a known planted value. No public corpus can substitute; canary tokens are the industry-standard mechanism (OWASP LLM07, AgentDojo).
+- 🅱 **Memorization / PII** is the exception that *does* want a real corpus — measuring genuine training-data memorization needs **real** data, not synthetic. NB06 therefore runs the **Enron corpus** (via [LLM-PBE](https://arxiv.org/abs/2408.12787) / [DecodingTrust](https://arxiv.org/abs/2306.11698)) as a Layer-1 generic benchmark for the extraction probe, alongside the synthetic proxies.
+
+So NB06 deliberately mixes **Layer 1** (Enron, for memorization realism) with **Layer 6** (canaries, for detectable secret/exfil leaks) — and that mix is the right design, not a shortcut. The takeaway: *match the data layer to what's actually measurable*, rather than defaulting to "use a public benchmark everywhere."
+
 ---
 
 ## Practical Engagement Workflow
