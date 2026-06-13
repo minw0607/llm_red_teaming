@@ -154,6 +154,34 @@ def error_cases(results, source: str | None = None, n: int = 8,
     return errs[:n]
 
 
+def error_direction_summary(results, sources=None) -> pd.DataFrame:
+    """
+    Gold→predicted breakdown of *incorrect* items, ranked by frequency.
+
+    Surfaces the dominant failure mode dynamically — e.g. ``entailment → neutral``
+    (the model under-commits, missing a valid inference) vs. ``neutral →
+    contradiction`` (it over-commits). Pass ``sources`` (a set/list) to focus on
+    specific datasets, e.g. ``{'anli_r2', 'anli_r3'}``.
+    """
+    from collections import Counter
+    rows = [_d(r) for r in results]
+    if sources is not None:
+        sources = set(sources)
+        rows = [r for r in rows if r["source"] in sources]
+    c: Counter = Counter()
+    for r in rows:
+        if r["correct"]:
+            continue
+        g = NLI_LABELS.get(r["gold"], "?")
+        p = NLI_LABELS.get(r["pred"], "unparsed")
+        c[(g, p)] += 1
+    out = [{"gold": g, "predicted": p, "count": n} for (g, p), n in c.most_common()]
+    df = pd.DataFrame(out)
+    if not df.empty:
+        df["pct_of_errors"] = (df["count"] / df["count"].sum()).round(3)
+    return df
+
+
 def explain_nli_errors(results, source: str | None = None, n: int = 6) -> None:
     """Pretty-print the most informative misclassifications."""
     errs = error_cases(results, source=source, n=n)
@@ -169,6 +197,64 @@ def explain_nli_errors(results, source: str | None = None, n: int = 6) -> None:
         if e["reason"]:
             print(f"    Why it's hard (ANLI): {e['reason'][:200]}")
         print()
+
+
+# ── Dynamic narrative helpers (keep the demo notebook light) ─────────────────────
+
+def nli_regulatory_note(results) -> str:
+    """One-paragraph regulatory read tied to the observed worst gap + failure mode."""
+    gap = robustness_gap(results)
+    if gap.empty:
+        return "No adversarial datasets scored — regulatory read unavailable."
+    w = gap.loc[gap["robustness_gap"].idxmax()]
+    sev = ("material" if w["robustness_gap"] >= 0.25
+           else "moderate" if w["robustness_gap"] >= 0.10 else "minor")
+    adv_dir = error_direction_summary(results, sources={"anli_r2", "anli_r3"})
+    fm = f"{adv_dir.iloc[0]['gold']} → {adv_dir.iloc[0]['predicted']}" if not adv_dir.empty else "mixed"
+    return (
+        f"📋 Regulatory read: worst gap is {w['source']} at {w['robustness_gap']:+.0%} ({sev}); "
+        f"dominant failure mode is {fm}.\n"
+        f"   → NIST AI 600-1 §2.5 Information Integrity and EU AI Act Art. 15 (accuracy/robustness) "
+        f"are the primary obligations;\n"
+        f"     document the gap + remediation in the model risk register."
+    )
+
+
+def print_nli_takeaways(results) -> None:
+    """Dynamic, plain-text headline summary of a run (used in the executive step)."""
+    summ = nli_summary(results)
+    gap = robustness_gap(results)
+    curve = anli_round_curve(results)
+    clean = summ[summ["kind"] == "clean"]["accuracy"]
+    clean_acc = float(clean.iloc[0]) if len(clean) else float("nan")
+    adv = summ[summ["kind"] == "adversarial"]
+    worst = gap.loc[gap["robustness_gap"].idxmax()] if not gap.empty else None
+    adv_dir = error_direction_summary(results, sources={"anli_r2", "anli_r3"})
+
+    print("── NLI ROBUSTNESS — KEY TAKEAWAYS ──")
+    print(f"  Clean accuracy (MNLI)        : {clean_acc:.1%}")
+    print(f"  Adversarial accuracy (mean)  : {adv['accuracy'].mean():.1%}  over {len(adv)} adversarial set(s)")
+    if worst is not None:
+        print(f"  Worst robustness gap         : {worst['source']}  {worst['robustness_gap']:+.1%} "
+              f"(clean {worst['clean_acc']:.0%} → adv {worst['adv_acc']:.0%})")
+    if not curve.empty:
+        trend = "falls" if curve["accuracy"].iloc[0] > curve["accuracy"].iloc[-1] else "holds/rises"
+        print(f"  ANLI curve R1→R3             : {' → '.join(f'{v:.0%}' for v in curve['accuracy'])}  ({trend} with difficulty)")
+    if not adv_dir.empty:
+        t = adv_dir.iloc[0]
+        print(f"  Dominant failure mode        : {t['gold']} → {t['predicted']}  ({t['pct_of_errors']:.0%} of hard-round misses)")
+    unparsed = sum(1 for r in results if _d(r)["pred"] == -1)
+    print(f"  Unparseable replies          : {unparsed} / {len(results)}  (content-filtered; counted as wrong)")
+
+    big_gap = gap[gap["robustness_gap"] >= 0.25] if not gap.empty else gap
+    print()
+    if not gap.empty and not big_gap.empty:
+        print(f"⚠️  {len(big_gap)} dataset(s) show a robustness gap ≥ 25% — clean accuracy materially overstates")
+        print("   reliability on adversarial reasoning. Add adversarial NLI to the eval suite and track the gap")
+        print("   as a release gate (NIST Information Integrity · EU AI Act Art. 15). See Step 7 for failure modes.")
+    else:
+        print("✅ No dataset shows a robustness gap ≥ 25%. Reasoning degrades gracefully under adversarial")
+        print("   pressure; continue monitoring the ANLI curve as harder rounds / new benchmarks are added.")
 
 
 # ── Console report ───────────────────────────────────────────────────────────────

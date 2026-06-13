@@ -36,9 +36,16 @@ from .fairness_metrics import (
 from .fairness_executive import generate_fairness_summary, render_fairness_html, compute_fairness_metrics
 from .nli_metrics import (
     nli_summary, nli_accuracy, robustness_gap, confusion_matrix,
-    anli_round_curve, error_cases, explain_nli_errors, print_nli_report,
+    anli_round_curve, error_cases, error_direction_summary,
+    explain_nli_errors, print_nli_report, print_nli_takeaways, nli_regulatory_note,
 )
+from .nli_plots import plot_nli_summary
 from .nli_executive import generate_nli_summary, render_nli_html, compute_nli_metrics
+from .data_metrics import (
+    data_leak_summary, overall_leak_rate, leak_by_strategy,
+    leaked_cases, explain_data_leaks, print_data_report,
+)
+from .data_executive import generate_data_summary, render_data_html, compute_data_metrics
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -115,9 +122,23 @@ __all__ = [
     "confusion_matrix",
     "anli_round_curve",
     "error_cases",
+    "error_direction_summary",
     "explain_nli_errors",
     "print_nli_report",
+    "print_nli_takeaways",
+    "nli_regulatory_note",
+    "plot_nli_summary",
     "generate_nli_summary",
     "render_nli_html",
     "compute_nli_metrics",
+    # Data red-teaming
+    "data_leak_summary",
+    "overall_leak_rate",
+    "leak_by_strategy",
+    "leaked_cases",
+    "explain_data_leaks",
+    "print_data_report",
+    "generate_data_summary",
+    "render_data_html",
+    "compute_data_metrics",
 ]

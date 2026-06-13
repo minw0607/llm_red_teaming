@@ -4,7 +4,36 @@
 
 Measures whether the model still **reasons correctly** when the input is crafted to fool it. NB01–03 attack the model (evasion, jailbreak, injection) and NB04 measures a harm (bias); this notebook measures a **capability under adversarial pressure** — Natural Language Inference (NLI).
 
-> **Status:** harness, datasets, metrics and executive report are **built and validated end-to-end** against a mock target. Live results (charts + executive screenshot + sample report) are added here after a run against the assessed model, following the same publish flow as NB01–04.
+---
+
+## Results — GPT-5-4 via Azure (full run, 13,298 items: 9,815 MultiNLI + 3,200 ANLI + 283 AdvGLUE)
+
+![NLI robustness summary](images/nb05_robustness.png)
+
+| Dataset | Accuracy | Gap vs clean |
+|---|---|---|
+| MultiNLI (clean baseline) | **85.5%** | — |
+| AdvGLUE mnli (matched) | 80.2% | +5.3% |
+| AdvGLUE mnli-mismatched | 70.4% | +15.1% |
+| ANLI R1 | 79.0% | +6.5% |
+| ANLI R2 | 68.4% | +17.1% |
+| ANLI R3 | 64.7% | **+20.8%** |
+
+The model is strong on ordinary inference (85.5%) and robust to surface perturbations (AdvGLUE matched, ANLI R1), but its reasoning **degrades steadily under adversarial pressure** — a clean monotonic ANLI difficulty curve (**79% → 68% → 65%**) ending in a **+20.8% robustness gap** on ANLI R3.
+
+**Dominant failure mode: hedging toward "neutral".** `entailment → neutral` is the single largest error (**37%** of hard-round misses), and together with `contradiction → neutral` (26%) roughly **63% of errors land on "neutral"** — the model retreats to the safe middle when a verdict requires a world-knowledge or multi-step leap (e.g. *"an equation named after Chandrasekhar"* ⟹ *"he was influential"*). The confusion matrix shows this as a heavy *neutral* column.
+
+**Scale matters:** at 13,298 items no dataset crosses the 25% "material" threshold — the worst gap is 20.8% (moderate). The noisier 100-item pilot had over-stated ANLI R3 at 26%, so the honest full-run read is **graceful degradation, not collapse**.
+
+**Caveats:** 94 of 13,298 replies (0.7%) were unparseable, mostly due to upstream **content filtering** (counted as wrong — a measurement artifact, not a reasoning failure); and a minority of ANLI gold labels are themselves **contestable** (the `reason` field sometimes reveals a debatable judgement), so the true gap may be marginally smaller. Treat flagged ANLI items as candidates for human review.
+
+### Executive report
+
+📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/nli_executive_summary.html)** · [Raw HTML](samples/nli_executive_summary.html) *(model name redacted)*
+
+[![NLI executive summary](images/nb05_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/nli_executive_summary.html)
+
+> ⚠️ **Illustrative sample** — accuracy figures come from an automated harness scoring fixed public benchmarks; adversarial sets are deliberately hard, so low scores reflect benchmark difficulty, not a production failure rate.
 
 ---
 

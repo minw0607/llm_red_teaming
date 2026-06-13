@@ -50,6 +50,11 @@ def _user_prompt(premise: str, hypothesis: str) -> str:
     return f"Premise: {premise}\nHypothesis: {hypothesis}\nAnswer:"
 
 
+# Public aliases so notebooks can show the exact prompt without importing privates.
+NLI_SYSTEM_PROMPT = _SYSTEM
+format_nli_prompt = _user_prompt
+
+
 # Word-boundary patterns so 'neutral' isn't matched inside other text, and the
 # first explicit label in the reply wins.
 _LABEL_PATTERNS = [

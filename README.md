@@ -39,7 +39,9 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 🔓 **Jailbreaking** | ✅ Complete | [↓ jump](#-jailbreaking-notebook-02) | [docs/02](docs/02_jailbreaking.md) |
 | 💉 **Prompt Injection** | ✅ Complete | [↓ jump](#-prompt-injection-notebook-03) | [docs/03](docs/03_prompt_injection.md) |
 | ⚖️ **Bias & Fairness** | ✅ Complete | [↓ jump](#️-bias--fairness-notebook-04) | [docs/04](docs/04_fairness.md) |
-| 🧩 **NLI Robustness** | 🛠️ Built — run pending | [↓ jump](#-nli-robustness-notebook-05) | [docs/05](docs/05_nli_robustness.md) |
+| 🧩 **NLI Robustness** | ✅ Complete | [↓ jump](#-nli-robustness-notebook-05) | [docs/05](docs/05_nli_robustness.md) |
+| 🔐 **Data Red-Teaming** | 🔜 Next build | [↓ jump](#-data-red-teaming-notebook-06) | — |
+| 🤖 **Agentic Tool Attacks** | 📋 Planned | [↓ jump](#-agentic-tool-attacks-notebook-07) | — |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
 
@@ -58,7 +60,10 @@ llm_red_teaming/
 │   ├── structural/             # BackTranslation, Homoglyph, Negation  [✅ implemented]
 │   ├── jailbreak/              # JailbreakBench + PAIR artifact runners [✅ implemented]
 │   ├── prompt/                 # Prompt injection (direct + indirect)  [✅ implemented]
-│   └── fairness/               # BBQ + counterfactual fairness probes  [✅ implemented]
+│   ├── fairness/               # BBQ + counterfactual fairness probes  [✅ implemented]
+│   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE     [✅ implemented]
+│   ├── data/                   # Disclosure, memorization, exfiltration [🔜 next]
+│   └── agent/                  # Tool-using agent sandbox + attacks     [📋 planned]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -90,14 +95,18 @@ llm_red_teaming/
 │   ├── 02_jailbreaking_demo.ipynb        # JailbreakBench       [✅]
 │   ├── 03_prompt_injection.ipynb         # Direct + indirect    [✅]
 │   ├── 04_fairness_counterfactual.ipynb  # Demographic swap     [✅]
-│   └── 05_nli_robustness_demo.ipynb      # MultiNLI/ANLI/AdvGLUE [🛠️]
+│   ├── 05_nli_robustness_demo.ipynb      # MultiNLI/ANLI/AdvGLUE [✅]
+│   ├── 06_data_redteam_demo.ipynb        # Disclosure/exfil     [🔜]
+│   └── 07_agentic_tool_attacks.ipynb     # Multi-step tools     [📋]
 │
 ├── docs/                       # Per-workstream results & deep dives
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
 │   ├── 02_jailbreaking.md      # NB02 full results (3 modes)          [✅]
 │   ├── 03_prompt_injection.md  # NB03 design & methodology            [✅]
 │   ├── 04_fairness.md          # NB04 design & methodology            [✅]
-│   ├── 05_nli_robustness.md    # NB05 design & methodology            [🛠️]
+│   ├── 05_nli_robustness.md    # NB05 design & methodology            [✅]
+│   ├── 06_data_redteam.md      # NB06 design & methodology            [🔜]
+│   ├── 07_agentic_tool_attacks.md # NB07 design & methodology         [📋]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
@@ -302,7 +311,7 @@ Two complementary methods:
 
 ## 🧩 NLI Robustness (Notebook 05)
 
-`Status: 🛠️ Built — live run pending`
+`Status: ✅ Complete`
 
 **What it tests:** whether the model still **reasons correctly** when the input is crafted to fool it. Natural Language Inference (NLI) asks the model to decide whether a hypothesis is **entailed by**, **neutral to**, or **contradicts** a premise — the canonical probe of reasoning over text (fact-checking, RAG faithfulness, policy analysis). Unlike NB01, the attack isn't an algorithm we run — the **dataset is the adversary**: [ANLI](https://arxiv.org/abs/1910.14599) items were written by humans specifically to break strong models.
 
@@ -310,7 +319,53 @@ Two complementary methods:
 
 **Capabilities:** 3 datasets (MultiNLI · ANLI ×3 rounds · AdvGLUE) · single 3-way label space · deterministic scoring · robustness gap + ANLI difficulty curve + confusion matrix · ANLI-annotated error analysis · executive report · resumable checkpointing.
 
-> The harness, metrics and report are built and validated end-to-end; charts + executive screenshot + sample report are published here after a run against the assessed model, as for NB01–04. [Design & methodology →](docs/05_nli_robustness.md) · [Open notebook →](notebooks/05_nli_robustness_demo.ipynb)
+![NLI robustness summary](docs/images/nb05_robustness.png)
+
+**Results — GPT-5-4 via Azure (full run, 13,298 items: 9,815 MultiNLI + 3,200 ANLI + 283 AdvGLUE):**
+
+| Dataset | Accuracy | Gap vs clean |
+|---|---|---|
+| MultiNLI (clean) | **85.5%** | — |
+| ANLI R1 → R2 → R3 | 79% → 68% → **65%** | +6.5% → +17% → **+20.8%** |
+| AdvGLUE (matched · mismatched) | 80.2% · 70.4% | +5.3% · +15.1% |
+
+The model is strong on ordinary inference (85.5%) and robust to surface perturbations (AdvGLUE matched, ANLI R1), but its reasoning **degrades steadily under adversarial pressure** — a clean monotonic ANLI difficulty curve (79→68→65%) ending in a **+20.8% robustness gap** on ANLI R3. The **dominant failure mode is hedging toward "neutral"**: `entailment → neutral` (37% of hard-round misses) plus `contradiction → neutral` together account for ~63% of errors — the model collapses to the safe middle when a verdict requires a world-knowledge or multi-step leap. At full scale no dataset crosses the 25% "material" line (the noisier 100-item pilot over-stated R3 at 26%), so the honest read is **graceful degradation, not collapse** — but clean accuracy still overstates reliability by ~21 points on the hardest reasoning, the assurance signal NB05 exists to surface.
+
+Notebook 05 auto-generates a **business-level executive report** — deterministic metrics interpreted by a judge LLM into a plain-English reliability verdict, regulatory citations, and recommendations:
+
+[![NLI executive summary](docs/images/nb05_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/nli_executive_summary.html)
+
+<div align="center">
+
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/nli_executive_summary.html)**  ·  [Design & methodology →](docs/05_nli_robustness.md)  ·  [Open notebook →](notebooks/05_nli_robustness_demo.ipynb)
+
+</div>
+
+---
+
+## 🔐 Data Red-Teaming (Notebook 06)
+
+`Status: 🔜 Next build`
+
+NB01–05 manipulate what the model *outputs*. NB06 targets **confidentiality** — the model (and the application around it) as a **data-leak vector**. It answers the question clients actually ask: *"what about the data in our AI application?"* Three tracks, all scored with deterministic canaries + regex (LLM-judge fallback for ambiguous free-text):
+
+| Track | Threat | What it tests | Standard |
+|---|---|---|---|
+| **A · System-prompt & secret disclosure** | A planted secret/canary in the system prompt is extracted | A taxonomy of prompt-extraction attacks (repeat-the-above, role-play, encoding, ignore-instructions) → **secret-leak rate** | OWASP **LLM07** |
+| **B · Memorization & PII regurgitation** | The model emits memorized training text or PII | Prefix-completion of well-known text · divergence/repetition probes · PII elicitation → **regurgitation rate** (verbatim n-gram overlap + PII regex) | OWASP **LLM02**, NIST §2.9 Data Privacy |
+| **C · RAG context exfiltration** | A retrieved doc leaks out, or a *poisoned* doc exfiltrates other context | Reuses NB03's indirect-injection harness: context-exfiltration asks, poisoned-doc → canary exfiltration, cross-record boundary violations → **exfiltration rate** | OWASP **LLM01/LLM08**, EU AI Act Art. 10 |
+
+**Build plan:** new `attacks/data/` (`disclosure.py`, `memorization.py`, `exfiltration.py`) + `evaluate/data_metrics.py` + `evaluate/data_executive.py` + `notebooks/06_data_redteam_demo.ipynb` (Steps 0–9, same structure as NB02–05). Mostly self-contained fixtures (canary secrets, synthetic PII, public-text prefixes) — no large downloads. **Honest black-box caveat:** we observe *regurgitation*, not training-set membership.
+
+---
+
+## 🤖 Agentic Tool Attacks (Notebook 07)
+
+`Status: 📋 Planned`
+
+The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Where NB03/NB06 inject *data*, NB07 tests whether that injection becomes an **unsafe action**: a tool-using agent moved from **untrusted input → unauthorized tool call** (send email, write file, HTTP request, exfiltrate via a tool).
+
+**What it will test:** a small tool-execution sandbox + adversarial tasks in the style of [AgentDojo](https://arxiv.org/abs/2406.13352); metric = **unsafe-action rate** across multi-step trajectories, with **replayable findings** (reproducible attack traces) per the competition's evaluation model. Maps to OWASP **LLM06 Excessive Agency** · MITRE ATLAS AML.T0053/T0054. Biggest lift of the roadmap (requires the tool sandbox), so it follows NB06.
 
 ---
 
@@ -348,11 +403,11 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 |:---:|---|---|---|---|---|---|
 | 🔭 | **RAG / Vector Store Poisoning** | Infrastructure | Inject adversarial documents into a retrieval corpus to influence LLM responses via indirect context | AML.T0054 · AML.T0020 | Information Security · Value Chain | LLM08 Vector & Embedding Weaknesses |
 | 🔭 | **Multi-Turn Context Manipulation** | Prompt | Build up a false context or persona over many dialogue turns to gradually shift model behaviour | AML.T0054 | Information Security · Human-AI Configuration | LLM01 Prompt Injection |
-| 🔭 | **Tool / Function Call Hijacking** | Prompt | Craft adversarial input that redirects an LLM agent's tool calls to unintended targets or actions | AML.T0054 | Information Security | LLM06 Excessive Agency |
+| 📋 | **Tool / Function Call Hijacking** | Prompt | Craft adversarial input that redirects an LLM agent's tool calls to unintended targets or actions *(NB07)* | AML.T0053 · AML.T0054 | Information Security | LLM06 Excessive Agency |
 | 🔭 | **Backdoor / Trojan Trigger** | Model-level | Insert a hidden trigger phrase during fine-tuning that causes targeted misclassification at inference | AML.T0020 · AML.T0043 | Information Security · Data Provenance | LLM04 Data & Model Poisoning |
 | 🔭 | **Membership Inference** | Privacy | Query the model systematically to determine whether specific examples were in its training data | AML.T0040 · AML.T0031 | Data Privacy | LLM02 Sensitive Information Disclosure |
 | 🔭 | **Model Extraction / Stealing** | Privacy | Reconstruct a functional surrogate of the target model via repeated black-box queries | AML.T0031 · AML.T0040 | Value Chain and Component Integration | LLM02 Sensitive Information Disclosure |
-| 🔭 | **Training Data Extraction** | Privacy | Prompt the model to reproduce memorised training data (PII, copyrighted text) | AML.T0031 | Data Privacy · Intellectual Property | LLM02 Sensitive Information Disclosure |
+| 🔜 | **Training Data Extraction** | Privacy | Prompt the model to reproduce memorised training data (PII, copyrighted text) *(NB06)* | AML.T0031 | Data Privacy · Intellectual Property | LLM02 Sensitive Information Disclosure |
 
 ### 📊 Dataset Roadmap
 
@@ -363,9 +418,9 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | ✅ | **HarmBench** | Safety / jailbreak | 400 behaviors across 7 harm categories; published ASR baselines (NB02) | [HarmBench](https://github.com/centerforaisafety/HarmBench) |
 | ✅ | **deepset/prompt-injections** | Prompt injection | 203 real-world injection payloads for the LLM-judged track (NB03) | [HuggingFace](https://huggingface.co/datasets/deepset/prompt-injections) |
 | ✅ | **BBQ** | Bias / fairness | Bias Benchmark for QA — 11 social categories, ambiguous/disambiguated bias score (NB04) | [Parrish et al. 2022](https://github.com/nyu-mll/BBQ) |
-| 🛠️ | **MultiNLI** | 3-class entailment | Clean NLI baseline — the robustness-gap reference (NB05) | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |
-| 🛠️ | **ANLI** | 3-class entailment | Human-in-the-loop adversarial NLI, 3 difficulty rounds + `reason` annotations (NB05) | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
-| 🛠️ | **AdvGLUE** | 3-class entailment | Adversarially-perturbed MNLI; second adversarial track (NB05) | [Wang et al. 2021](https://arxiv.org/abs/2111.02840) |
+| ✅ | **MultiNLI** | 3-class entailment | Clean NLI baseline — the robustness-gap reference (NB05) | [HuggingFace](https://huggingface.co/datasets/nyu-mll/multi_nli) |
+| ✅ | **ANLI** | 3-class entailment | Human-in-the-loop adversarial NLI, 3 difficulty rounds + `reason` annotations (NB05) | [Nie et al. 2020](https://arxiv.org/abs/1910.14599) |
+| ✅ | **AdvGLUE** | 3-class entailment | Adversarially-perturbed MNLI; second adversarial track (NB05) | [Wang et al. 2021](https://arxiv.org/abs/2111.02840) |
 | 📋 | **ToxiGen / HateXplain** | Toxicity classification | Safety-critical: does the model correctly flag hate speech after perturbation? | [ToxiGen](https://arxiv.org/abs/2203.09509) · [HateXplain](https://arxiv.org/abs/2012.10289) |
 | 📋 | **TriviaQA** | Open-domain QA | Does a factual answer change when the question is rephrased? | [HuggingFace](https://huggingface.co/datasets/trivia_qa) |
 | 🔭 | **MMLU** (select subsets) | Multi-domain MCQ | Domain-specific robustness (medical, legal, STEM) under prompt rephrasing | [HuggingFace](https://huggingface.co/datasets/cais/mmlu) |
@@ -384,13 +439,13 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | 📋 | **Paraphrase Consistency** | Does the model give the same answer to semantically equivalent rephrasings? | AdvGLUE · ANLI | Consistency rate |
 | ✅ | **Counterfactual Fairness** | Does swapping a protected attribute (gender, race, age, nationality, religion) change the decision? | Custom decision probes | Flip rate · parity gap |
 | ✅ | **Stereotype Bias (BBQ)** | Does the model rely on social stereotypes when the answer is underdetermined? | BBQ (11 categories) | Bias score (−1…+1) |
-| 🛠️ | **NLI Reasoning Robustness** | Does the model still infer entailment correctly under adversarial pressure? | MultiNLI · ANLI · AdvGLUE | Robustness gap (clean − adv) |
+| ✅ | **NLI Reasoning Robustness** | Does the model still infer entailment correctly under adversarial pressure? | MultiNLI · ANLI · AdvGLUE | Robustness gap (clean − adv) |
 | 📋 | **Factuality Robustness** | Does injecting a false premise into a QA question cause the model to accept it? | TriviaQA · NaturalQuestions | Fact-acceptance rate |
 | 📋 | **Logical Negation Robustness** | Does the model correctly track negation under paraphrase? | MultiNLI · custom | Negation flip rate |
 | 🔭 | **Multi-Turn Manipulation** | Can a model's behaviour be shifted over successive turns via context accumulation? | MT-Bench · custom | Behaviour drift score |
 | 🔭 | **Confidence / Calibration Shift** | Does an adversarial attack inflate the model's confidence in a wrong answer? | SST-2 · AdvGLUE | ECE · confidence delta |
-| 🔭 | **Tool Call Hijacking Rate** | Can adversarial input redirect an agent's function calls? | Custom agentic tasks | Hijack rate |
-| 🔭 | **Training Data Extraction** | Can repeated prompting extract PII or verbatim training text? | Custom extraction prompts | Extraction rate |
+| 📋 | **Tool Call Hijacking Rate** | Can adversarial input redirect an agent's function calls? *(NB07)* | AgentDojo-style tasks | Unsafe-action rate |
+| 🔜 | **Training Data Extraction** | Can repeated prompting extract PII or verbatim training text? *(NB06)* | Canaries · synthetic PII · public-text prefixes | Regurgitation rate |
 
 ---
 
@@ -402,7 +457,9 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | [`02_jailbreaking_demo.ipynb`](notebooks/02_jailbreaking_demo.ipynb) | ✅ | Three-mode jailbreak evaluation — direct goals, artifact templates, PAIR transfer; BART-MNLI judge, incremental checkpointing, regulatory mapping. [Results →](docs/02_jailbreaking.md) |
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | ✅ | Direct + indirect prompt injection — 5-strategy taxonomy, canary override-rate metric, real-world payloads, executive report. [Design →](docs/03_prompt_injection.md) |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | ✅ | Bias & fairness — BBQ stereotype benchmark (11 categories, bias score) + counterfactual decision probes (flip rate, parity gap), executive report. [Design →](docs/04_fairness.md) |
-| [`05_nli_robustness_demo.ipynb`](notebooks/05_nli_robustness_demo.ipynb) | 🛠️ | NLI reasoning robustness — MultiNLI baseline vs. ANLI (3 rounds) + AdvGLUE; robustness gap, ANLI difficulty curve, confusion matrix, ANLI-annotated error analysis, executive report. [Design →](docs/05_nli_robustness.md) |
+| [`05_nli_robustness_demo.ipynb`](notebooks/05_nli_robustness_demo.ipynb) | ✅ | NLI reasoning robustness — MultiNLI baseline vs. ANLI (3 rounds) + AdvGLUE; robustness gap, ANLI difficulty curve, confusion matrix, ANLI-annotated error analysis, executive report. [Design →](docs/05_nli_robustness.md) |
+| `06_data_redteam_demo.ipynb` | 🔜 | Data red-teaming — system-prompt/secret disclosure, training-data memorization & PII regurgitation, RAG context exfiltration; deterministic leak metrics + executive report |
+| `07_agentic_tool_attacks.ipynb` | 📋 | Agentic tool attacks — multi-step untrusted-input → unsafe-action paths against a tool-using agent sandbox (AgentDojo-aligned); unsafe-action rate + replayable findings |
 
 Notebooks are intentionally **code-light** — they import from the modules above and focus on results, visualisations, and interpretation.
 
