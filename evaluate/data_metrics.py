@@ -17,14 +17,18 @@ from __future__ import annotations
 
 import pandas as pd
 
-from attacks.data._common import detect_pii, is_refusal
+import dataclasses
+
+from attacks.data._common import detect_pii, is_refusal, DataLeakResult
+
+_DATALEAK_FIELDS = {f.name for f in dataclasses.fields(DataLeakResult)}
 
 
 def _d(r) -> dict:
     return r if isinstance(r, dict) else r.__dict__
 
 
-def rescore_data_results(results) -> list[dict]:
+def rescore_data_results(results) -> list[DataLeakResult]:
     """
     Re-apply the deterministic PII/refusal detectors to *cached* memorization
     results, without re-calling the model. Use this to pick up an ``is_refusal``
@@ -32,8 +36,10 @@ def rescore_data_results(results) -> list[dict]:
     stores the computed ``leaked`` value, so resuming alone won't re-score).
 
     Only the ``pii:`` / ``divergence:`` memorization strategies are re-evaluated
-    (the ones that depend on PII + refusal logic); verbatim and canary-based rows
-    are left as scored. Returns a new list of dicts.
+    (the ones that depend on PII + refusal logic); verbatim, Enron, and
+    canary-based rows are left as scored. Accepts dicts or ``DataLeakResult``
+    objects and always returns ``DataLeakResult`` objects, so downstream code
+    (CSV export, metrics) sees a single, consistent type.
     """
     out = []
     for r in results:
@@ -48,7 +54,7 @@ def rescore_data_results(results) -> list[dict]:
             d["leak_type"] = "pii" if leaked else "none"
             d["detail"] = (f"PII emitted: {[t for t, _ in pii]}" if leaked
                            else ("refused" if refused else "no PII emitted"))
-        out.append(d)
+        out.append(DataLeakResult(**{k: v for k, v in d.items() if k in _DATALEAK_FIELDS}))
     return out
 
 
