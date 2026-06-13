@@ -41,7 +41,7 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | ⚖️ **Bias & Fairness** | ✅ Complete | [↓ jump](#️-bias--fairness-notebook-04) | [docs/04](docs/04_fairness.md) |
 | 🧩 **NLI Robustness** | ✅ Complete | [↓ jump](#-nli-robustness-notebook-05) | [docs/05](docs/05_nli_robustness.md) |
 | 🔐 **Data Red-Teaming** | 🔜 Next build | [↓ jump](#-data-red-teaming-notebook-06) | — |
-| 🤖 **Agentic Tool Attacks** | 📋 Planned | [↓ jump](#-agentic-tool-attacks-notebook-07) | — |
+| 🤖 **Agentic Tool Attacks** | 🛠️ Built — run pending | [↓ jump](#-agentic-tool-attacks-notebook-07) | [docs/07](docs/07_agentic_tool_attacks.md) |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
 
@@ -63,7 +63,7 @@ llm_red_teaming/
 │   ├── fairness/               # BBQ + counterfactual fairness probes  [✅ implemented]
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE     [✅ implemented]
 │   ├── data/                   # Disclosure, memorization, exfiltration [🔜 next]
-│   └── agent/                  # Tool-using agent sandbox + attacks     [📋 planned]
+│   └── agent/                  # Tool-using agent sandbox + attacks     [🛠️ built]
 │
 ├── judges/                     # Response evaluation
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
@@ -97,7 +97,7 @@ llm_red_teaming/
 │   ├── 04_fairness_counterfactual.ipynb  # Demographic swap     [✅]
 │   ├── 05_nli_robustness_demo.ipynb      # MultiNLI/ANLI/AdvGLUE [✅]
 │   ├── 06_data_redteam_demo.ipynb        # Disclosure/exfil     [🔜]
-│   └── 07_agentic_tool_attacks.ipynb     # Multi-step tools     [📋]
+│   └── 07_agentic_tool_attacks.ipynb     # Multi-step tools     [🛠️]
 │
 ├── docs/                       # Per-workstream results & deep dives
 │   ├── 01_adversarial_nlp.md   # NB01 full results (n=872)            [✅]
@@ -106,7 +106,7 @@ llm_red_teaming/
 │   ├── 04_fairness.md          # NB04 design & methodology            [✅]
 │   ├── 05_nli_robustness.md    # NB05 design & methodology            [✅]
 │   ├── 06_data_redteam.md      # NB06 design & methodology            [🔜]
-│   ├── 07_agentic_tool_attacks.md # NB07 design & methodology         [📋]
+│   ├── 07_agentic_tool_attacks.md # NB07 design & methodology         [🛠️]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
 │   ├── images/                 # Figures referenced in docs
@@ -361,11 +361,15 @@ NB01–05 manipulate what the model *outputs*. NB06 targets **confidentiality** 
 
 ## 🤖 Agentic Tool Attacks (Notebook 07)
 
-`Status: 📋 Planned`
+`Status: 🛠️ Built — live run pending`
 
-The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Where NB03/NB06 inject *data*, NB07 tests whether that injection becomes an **unsafe action**: a tool-using agent moved from **untrusted input → unauthorized tool call** (send email, write file, HTTP request, exfiltrate via a tool).
+The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Where NB03/NB06 inject *data*, NB07 tests whether that injection becomes an **unsafe action**: a tool-using agent moved from **untrusted input → unauthorized tool call** (send email, delete files, make a payment, exfiltrate via a tool).
 
-**What it will test:** a small tool-execution sandbox + adversarial tasks in the style of [AgentDojo](https://arxiv.org/abs/2406.13352); metric = **unsafe-action rate** across multi-step trajectories, with **replayable findings** (reproducible attack traces) per the competition's evaluation model. Maps to OWASP **LLM06 Excessive Agency** · MITRE ATLAS AML.T0053/T0054. Biggest lift of the roadmap (requires the tool sandbox), so it follows NB06.
+**What it tests:** a target-agnostic **ReAct agent loop** over a safe, **mock tool sandbox** (sources: read email/files/web · sinks: send_email/delete_file/http_post/make_payment) + five adversarial scenarios in the style of [AgentDojo](https://arxiv.org/abs/2406.13352). Headline metric = **unsafe-action rate** across multi-step trajectories (split **indirect** vs **direct**), with **replayable findings** — every step (model output → tool call → observation) is captured so a finding is reproducible, per the competition's evaluation model.
+
+**Capabilities:** mock sandbox (4 sources · 4 sinks) · text-ReAct agent loop (no provider function-calling API needed) · 5 scenarios (email exfil · file delete · payment redirect · web exfil · direct baseline) · deterministic unsafe-action detection from the tool log · replayable trajectories · resumable checkpointing · executive report. Maps to OWASP **LLM06 Excessive Agency** · MITRE ATLAS AML.T0053/T0054 · EU AI Act Art. 15.
+
+> Harness, sandbox, scenarios, metrics, and report are built and validated end-to-end; charts + executive screenshot + sample report are published after a run against the assessed model, as for NB01–06. [Design & methodology →](docs/07_agentic_tool_attacks.md) · [Open notebook →](notebooks/07_agentic_tool_attacks.ipynb)
 
 ---
 
@@ -459,7 +463,7 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | ✅ | Bias & fairness — BBQ stereotype benchmark (11 categories, bias score) + counterfactual decision probes (flip rate, parity gap), executive report. [Design →](docs/04_fairness.md) |
 | [`05_nli_robustness_demo.ipynb`](notebooks/05_nli_robustness_demo.ipynb) | ✅ | NLI reasoning robustness — MultiNLI baseline vs. ANLI (3 rounds) + AdvGLUE; robustness gap, ANLI difficulty curve, confusion matrix, ANLI-annotated error analysis, executive report. [Design →](docs/05_nli_robustness.md) |
 | `06_data_redteam_demo.ipynb` | 🔜 | Data red-teaming — system-prompt/secret disclosure, training-data memorization & PII regurgitation, RAG context exfiltration; deterministic leak metrics + executive report |
-| `07_agentic_tool_attacks.ipynb` | 📋 | Agentic tool attacks — multi-step untrusted-input → unsafe-action paths against a tool-using agent sandbox (AgentDojo-aligned); unsafe-action rate + replayable findings |
+| [`07_agentic_tool_attacks.ipynb`](notebooks/07_agentic_tool_attacks.ipynb) | 🛠️ | Agentic tool attacks — ReAct agent over a mock tool sandbox; 5 untrusted-input → unsafe-action scenarios (AgentDojo-aligned), unsafe-action rate + replayable findings, executive report. [Design →](docs/07_agentic_tool_attacks.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules above and focus on results, visualisations, and interpretation.
 

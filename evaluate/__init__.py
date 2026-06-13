@@ -46,6 +46,12 @@ from .data_metrics import (
     leaked_cases, explain_data_leaks, print_data_report,
 )
 from .data_executive import generate_data_summary, render_data_html, compute_data_metrics
+from .agent_metrics import (
+    unsafe_action_rate, agent_summary, unsafe_by_scenario,
+    unsafe_findings, explain_agent_finding, print_agent_report,
+    print_agent_takeaways, agent_regulatory_note,
+)
+from .agent_executive import generate_agent_summary, render_agent_html, compute_agent_metrics
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -141,4 +147,16 @@ __all__ = [
     "generate_data_summary",
     "render_data_html",
     "compute_data_metrics",
+    # Agentic tool attacks
+    "unsafe_action_rate",
+    "agent_summary",
+    "unsafe_by_scenario",
+    "unsafe_findings",
+    "explain_agent_finding",
+    "print_agent_report",
+    "print_agent_takeaways",
+    "agent_regulatory_note",
+    "generate_agent_summary",
+    "render_agent_html",
+    "compute_agent_metrics",
 ]
