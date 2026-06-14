@@ -52,6 +52,7 @@ from .agent_metrics import (
     print_agent_takeaways, agent_regulatory_note,
 )
 from .agent_executive import generate_agent_summary, render_agent_html, compute_agent_metrics
+from .guardrail import guardrail_delta, guardrail_comparison, print_guardrail_report
 from .sanity import sanity_check, render_sanity_html
 
 __all__ = [
@@ -161,4 +162,8 @@ __all__ = [
     "generate_agent_summary",
     "render_agent_html",
     "compute_agent_metrics",
+    # Guardrail efficacy (model vs application)
+    "guardrail_delta",
+    "guardrail_comparison",
+    "print_guardrail_report",
 ]

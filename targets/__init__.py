@@ -18,5 +18,6 @@ AzureOpenAITarget
 
 from .openai_compatible import OpenAICompatibleTarget
 from .azure_openai import AzureOpenAITarget
+from .application import ApplicationTarget
 
-__all__ = ["OpenAICompatibleTarget", "AzureOpenAITarget"]
+__all__ = ["OpenAICompatibleTarget", "AzureOpenAITarget", "ApplicationTarget"]

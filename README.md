@@ -31,6 +31,8 @@ Adversarial ML attacks span the whole pipeline — training data, the model, and
 
 ![AI red teaming attack surface](docs/images/attack_surface.png)
 
+> **Scope — model-level by default.** The notebooks probe the **model** (plus the vendor's platform content filter), which is the right unit for *model assurance* and a conservative upper bound on risk. To test a **deployed application** — with its own system prompt, guardrails, retrieval, and tools — point the harness at the app via `ApplicationTarget` and measure what the guardrails catch (the *delta*). See [model-level vs application-level testing](docs/application_testing.md).
+
 The toolkit is organised into **workstreams**, each delivered as a code-light demo notebook backed by reusable modules. Jump to a workstream:
 
 | Workstream | Status | Front-page section | Full results |
@@ -43,7 +45,7 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 🔐 **Data Red-Teaming** | 🛠️ Built — run pending | [↓ jump](#-data-red-teaming-notebook-06) | [docs/06](docs/06_data_redteam.md) |
 | 🤖 **Agentic Tool Attacks** | 🛠️ Built — run pending | [↓ jump](#-agentic-tool-attacks-notebook-07) | [docs/07](docs/07_agentic_tool_attacks.md) |
 
-📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) — how our methods compare to the field · [Dataset strategy](docs/dataset_strategy.md) — choosing test sets for real engagements
+📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) · [Dataset strategy](docs/dataset_strategy.md) · [Model-level vs application-level](docs/application_testing.md) — testing the deployed app (with guardrails), not just the model
 
 ---
 
@@ -69,7 +71,9 @@ llm_red_teaming/
 │   └── classifier_judge.py     # Rule-based + zero-shot BART-MNLI judge
 │
 ├── targets/                    # Model connectors (pluggable)
-│   └── azure_openai.py         # Azure OpenAI / APIM gateway
+│   ├── openai_compatible.py    # Any OpenAI-compatible endpoint        [✅ implemented]
+│   ├── azure_openai.py         # Azure OpenAI / APIM gateway           [✅ implemented]
+│   └── application.py          # Deployed APP endpoint (app-level test) [✅ implemented]
 │
 ├── evaluate/                   # Metrics and reporting
 │   ├── metrics.py              # ASR, risk score, human review queue   [✅ implemented]
@@ -79,6 +83,7 @@ llm_red_teaming/
 │   ├── display.py              # Human review display helper           [✅ implemented]
 │   ├── regulatory.py           # Dynamic regulatory impact mapping     [✅ implemented]
 │   ├── executive.py            # LLM-interpreted executive report      [✅ implemented]
+│   ├── guardrail.py            # Model-vs-app guardrail-delta metric    [✅ implemented]
 │   ├── sanity.py               # Pre-run readiness validator           [✅ implemented]
 │   ├── consistency.py          # Paraphrase & self-consistency         [📋 planned]
 │   └── fairness.py             # Counterfactual demographic scorer     [📋 planned]
