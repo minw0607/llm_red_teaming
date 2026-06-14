@@ -27,7 +27,7 @@ Modern AI systems are increasingly deployed in sensitive contexts — yet their 
 
 ### Where this toolkit fits
 
-Adversarial ML attacks span the whole pipeline — training data, the model, and its inputs/outputs. This toolkit currently covers the **inference-time, input-manipulation** half of that surface (evasion, jailbreaking, prompt injection), with data-/model-level attacks (poisoning, privacy, extraction) on the roadmap:
+Adversarial ML attacks span the whole pipeline — training data, the model, its inputs, and its outputs. This toolkit now covers **most of that surface**: input attacks (evasion, jailbreak, prompt injection, reasoning robustness), output/data attacks (sensitive-data disclosure, PII/memorization extraction, RAG exfiltration), and agentic tool hijacking — with data poisoning, membership inference, and model extraction remaining on the roadmap:
 
 ![AI red teaming attack surface](docs/images/attack_surface.png)
 

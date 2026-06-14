@@ -1,94 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 640" font-family="'Segoe UI',Arial,sans-serif">
-  <rect width="1020" height="640" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 720" font-family="'Segoe UI',Arial,sans-serif">
+  <rect width="1300" height="720" fill="#ffffff"/>
 
   <!-- Title -->
-  <text x="40" y="44" font-size="26" font-weight="800" fill="#1a1a1a">🔴 AI Red Teaming — Attack Surface</text>
-  <text x="40" y="72" font-size="15" fill="#5f6368">Where this toolkit operates within the adversarial-ML attack taxonomy (NIST AI 100-2)</text>
+  <text x="40" y="46" font-size="27" font-weight="800" fill="#1a1a1a">🔴 AI Red Teaming — Attack Surface</text>
+  <text x="40" y="74" font-size="15" fill="#5f6368">The adversarial-ML attack surface this toolkit covers, mapped to the model pipeline (NIST AI 100-2)</text>
 
-  <!-- arrowhead defs -->
   <defs>
-    <marker id="red" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#B23A1E"/></marker>
-    <marker id="grey" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9AA0A6"/></marker>
-    <marker id="blk" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#222"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#C0392B"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#37474F"/>
+    </marker>
   </defs>
 
-  <!-- ===== Training / Retrieved Data ===== -->
+  <!-- ===== Central pipeline ===== -->
+  <!-- Data store (cylinder) -->
   <g>
-    <ellipse cx="300" cy="150" rx="60" ry="16" fill="#222"/>
-    <rect x="240" y="150" width="120" height="58" fill="#222"/>
-    <ellipse cx="300" cy="208" rx="60" ry="16" fill="#222"/>
-    <ellipse cx="300" cy="150" rx="60" ry="16" fill="#3a3a3a"/>
-    <text x="300" y="240" font-size="14" font-weight="700" fill="#222" text-anchor="middle">Training / Retrieved Data</text>
+    <path d="M572,150 a78,20 0 0,0 156,0 l0,62 a78,20 0 0,1 -156,0 z" fill="#2b2b2b"/>
+    <ellipse cx="650" cy="150" rx="78" ry="20" fill="#3a3a3a"/>
+    <text x="650" y="250" font-size="14" font-weight="700" fill="#1a1a1a" text-anchor="middle">Training / Retrieved Data</text>
   </g>
 
-  <!-- ===== Deployed model pipeline (dashed box) ===== -->
-  <rect x="150" y="360" width="500" height="170" rx="10" fill="#FAFAFA" stroke="#9AA0A6" stroke-width="2" stroke-dasharray="7 5"/>
-  <text x="400" y="515" font-size="14" font-weight="700" fill="#222" text-anchor="middle">Deployed Model (black-box API)</text>
+  <!-- Deployed boundary -->
+  <rect x="430" y="330" width="540" height="172" rx="10" fill="#fafafa" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <text x="700" y="488" font-size="13" font-weight="600" fill="#5f6368" text-anchor="middle">Deployed model — or application (model · guardrails · RAG · tools)</text>
 
-  <!-- Input -->
-  <rect x="180" y="405" width="100" height="56" rx="8" fill="#fff" stroke="#222" stroke-width="2"/>
-  <text x="230" y="439" font-size="15" font-weight="700" fill="#222" text-anchor="middle">Input</text>
-  <!-- Model -->
-  <rect x="335" y="398" width="130" height="72" rx="8" fill="#222"/>
-  <text x="400" y="430" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">ML / AI</text>
-  <text x="400" y="450" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Model</text>
-  <!-- Output -->
-  <rect x="520" y="405" width="100" height="56" rx="8" fill="#fff" stroke="#222" stroke-width="2"/>
-  <text x="570" y="439" font-size="15" font-weight="700" fill="#222" text-anchor="middle">Output</text>
+  <!-- Input / Model / Output -->
+  <rect x="462" y="388" width="120" height="62" rx="8" fill="#ffffff" stroke="#333" stroke-width="2"/>
+  <text x="522" y="425" font-size="16" font-weight="700" fill="#1a1a1a" text-anchor="middle">Input</text>
+
+  <rect x="622" y="388" width="156" height="62" rx="8" fill="#1f2933"/>
+  <text x="700" y="415" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">ML / AI</text>
+  <text x="700" y="435" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">Model</text>
+
+  <rect x="818" y="388" width="120" height="62" rx="8" fill="#ffffff" stroke="#333" stroke-width="2"/>
+  <text x="878" y="425" font-size="16" font-weight="700" fill="#1a1a1a" text-anchor="middle">Output</text>
 
   <!-- pipeline arrows -->
-  <line x1="280" y1="433" x2="333" y2="433" stroke="#222" stroke-width="2.5" marker-end="url(#blk)"/>
-  <line x1="465" y1="433" x2="518" y2="433" stroke="#222" stroke-width="2.5" marker-end="url(#blk)"/>
-  <!-- data feeds model -->
-  <line x1="300" y1="256" x2="300" y2="396" stroke="#222" stroke-width="2.5" marker-end="url(#blk)"/>
+  <line x1="582" y1="419" x2="620" y2="419" stroke="#333" stroke-width="2.5" marker-end="url(#ag)"/>
+  <line x1="778" y1="419" x2="816" y2="419" stroke="#333" stroke-width="2.5" marker-end="url(#ag)"/>
+  <!-- data feeds input/context -->
+  <path d="M620,212 C560,300 530,330 522,386" fill="none" stroke="#333" stroke-width="2.5" marker-end="url(#ag)"/>
 
-  <!-- ============================================================ -->
-  <!-- COVERED (red) — inference-time input attacks                 -->
-  <!-- ============================================================ -->
+  <!-- ===== Attack labels (all red, NB tag where built) ===== -->
+  <g font-size="15" font-weight="700" fill="#C0392B">
 
-  <!-- Evasion (NB01) -->
-  <text x="40" y="588" font-size="14" font-weight="700" fill="#B23A1E">Evasion — adversarial inputs · NB01 ✅</text>
-  <path d="M150,584 C 120,560 150,470 228,463" fill="none" stroke="#B23A1E" stroke-width="2.5" marker-end="url(#red)"/>
+    <!-- top: poisoning + indirect injection -->
+    <text x="250" y="120">Data Poisoning · 📋 planned</text>
+    <path d="M360,128 C460,150 520,140 574,150" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Jailbreak (NB02) -->
-  <text x="40" y="338" font-size="14" font-weight="700" fill="#B23A1E">Jailbreak — bypass safety alignment · NB02 ✅</text>
-  <path d="M150,333 C 120,360 150,400 178,420" fill="none" stroke="#B23A1E" stroke-width="2.5" marker-end="url(#red)"/>
+    <text x="800" y="112">Prompt Injection (indirect) · NB03 ✅</text>
+    <text x="800" y="132" font-size="13" font-weight="400" fill="#7a3b32">malicious content in retrieved data</text>
+    <path d="M795,120 C760,138 745,142 728,150" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Prompt Injection direct (NB03) -->
-  <text x="40" y="312" font-size="14" font-weight="700" fill="#B23A1E">Prompt Injection (direct) — hijack via user input · NB03 ✅</text>
-  <path d="M150,307 C 150,345 195,380 205,402" fill="none" stroke="#B23A1E" stroke-width="2.5" marker-end="url(#red)"/>
+    <!-- left: input-side attacks -->
+    <text x="40" y="356">Prompt Injection (direct) · NB03 ✅</text>
+    <path d="M250,364 C350,392 400,402 460,410" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Prompt Injection indirect (NB03) — via retrieved data -->
-  <text x="430" y="150" font-size="14" font-weight="700" fill="#B23A1E">Prompt Injection (indirect) —</text>
-  <text x="430" y="170" font-size="14" font-weight="700" fill="#B23A1E">malicious content in retrieved data · NB03 ✅</text>
-  <path d="M425,165 C 390,172 372,178 362,180" fill="none" stroke="#B23A1E" stroke-width="2.5" marker-end="url(#red)"/>
+    <text x="40" y="404">Jailbreak — safety bypass · NB02 ✅</text>
+    <path d="M270,412 C360,418 410,420 460,420" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- ============================================================ -->
-  <!-- ROADMAP (grey)                                               -->
-  <!-- ============================================================ -->
+    <text x="40" y="600">Evasion — adversarial inputs · NB01 ✅</text>
+    <path d="M180,588 C300,520 400,470 462,442" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Data Poisoning -> data -->
-  <text x="120" y="100" font-size="14" font-weight="700" fill="#9AA0A6">Data Poisoning 📋</text>
-  <path d="M230,108 C 255,120 270,128 285,138" fill="none" stroke="#9AA0A6" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#grey)"/>
+    <text x="40" y="640">NLI reasoning robustness · NB05 ✅</text>
+    <path d="M165,628 C300,560 405,485 462,448" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Model Extraction <- output -->
-  <text x="690" y="430" font-size="14" font-weight="700" fill="#9AA0A6">Model Extraction 📋</text>
-  <path d="M622,433 C 650,433 665,433 685,433" fill="none" stroke="#9AA0A6" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#grey)"/>
+    <!-- right: output-side attacks -->
+    <text x="992" y="300">Model Extraction · 📋 planned</text>
+    <path d="M938,400 C965,360 975,330 988,308" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- Privacy / Inference <- output -->
-  <text x="690" y="480" font-size="14" font-weight="700" fill="#9AA0A6">Membership Inference / Privacy 📋</text>
-  <path d="M622,455 C 655,468 670,472 688,474" fill="none" stroke="#9AA0A6" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#grey)"/>
+    <text x="992" y="372">Sensitive-data disclosure · NB06 ✅</text>
+    <text x="992" y="392" font-size="13" font-weight="400" fill="#7a3b32">secrets · PII · memorization · RAG exfiltration</text>
+    <path d="M938,412 C962,402 972,398 988,392" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
 
-  <!-- ===== Legend ===== -->
-  <g transform="translate(700,150)">
-    <rect x="0" y="0" width="290" height="150" rx="8" fill="#FAFAFA" stroke="#E0E0E0"/>
-    <text x="16" y="28" font-size="14" font-weight="800" fill="#1a1a1a">Coverage</text>
-    <line x1="16" y1="48" x2="44" y2="48" stroke="#B23A1E" stroke-width="3"/>
-    <text x="52" y="52" font-size="13" fill="#333" font-weight="700">Implemented in this repo</text>
-    <text x="52" y="70" font-size="11.5" fill="#5f6368">NB01 Evasion · NB02 Jailbreak · NB03 Injection</text>
-    <line x1="16" y1="92" x2="44" y2="92" stroke="#9AA0A6" stroke-width="3" stroke-dasharray="6 4"/>
-    <text x="52" y="96" font-size="13" fill="#333" font-weight="700">Roadmap</text>
-    <text x="52" y="114" font-size="11.5" fill="#5f6368">Poisoning · Privacy/Inference · Extraction</text>
-    <text x="16" y="140" font-size="11" fill="#9AA0A6">Red Team: test · detect · exploit · uncover</text>
+    <text x="992" y="448">Agentic tool hijacking · NB07 ✅</text>
+    <text x="992" y="468" font-size="13" font-weight="400" fill="#7a3b32">untrusted input → unsafe tool call</text>
+    <path d="M938,428 C962,438 972,444 988,452" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
+
+    <text x="992" y="528">Membership Inference · 📋 planned</text>
+    <path d="M938,440 C965,480 975,505 988,520" fill="none" stroke="#C0392B" stroke-width="2.2" marker-end="url(#ar)"/>
   </g>
+
+  <!-- ===== Footer notes ===== -->
+  <line x1="40" y1="668" x2="1260" y2="668" stroke="#ECEFF1" stroke-width="1.5"/>
+  <text x="40" y="690" font-size="13" fill="#5f6368"><tspan font-weight="700" fill="#37474F">Bias &amp; Fairness (NB04)</tspan> is a model harm, not a pipeline attack — covered as a separate responsible-AI axis.</text>
+  <text x="40" y="710" font-size="13" fill="#5f6368"><tspan font-weight="700" fill="#37474F">Scope:</tspan> model-level by default; <tspan font-weight="700" fill="#C0392B">ApplicationTarget</tspan> extends every probe to the deployed application (system prompt · guardrails · RAG · tools).</text>
 </svg>
