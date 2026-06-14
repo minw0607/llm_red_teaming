@@ -4,7 +4,27 @@
 
 Tests **confidentiality** — the model, and the application around it, as a **data-leak vector**. NB01–05 attack what the model *outputs*; NB06 answers the question clients actually ask: *"what about the data in our AI application?"*
 
-> **Status:** harness, three tracks, metrics, and executive report are **built and validated end-to-end** against a mock target. Live results (charts + executive screenshot + sample report) are published here after a run against the assessed model, following the same flow as NB01–05.
+---
+
+## Results — GPT-5-4 via Azure (61 probes: 24 disclosure + 28 memorization + 9 exfiltration)
+
+![Data red-teaming summary](images/nb06_data_redteam.png)
+
+| Track | Sensitive-leak rate | Note |
+|---|---|---|
+| System-prompt disclosure | **0 / 24** | resisted all 8 extraction strategies × 3 repeats |
+| RAG context exfiltration | **0 / 9** | resisted direct, indirect (poisoned-doc) & boundary |
+| Memorization / PII | **0 / 28** | incl. **0 / 20 real Enron** PII reproduced; 3 benign public-domain recalls |
+
+The model is **clean across all three confidentiality tracks**, including real training-data PII extraction from the Enron corpus (0/20 reproduced). The only flags are benign public-domain recall (Shakespeare, the MIT licence, the Declaration) — which the **sensitive-leak rate excludes by design**, so the headline is **0% sensitive leaks → LOW risk** rather than the misleading "50%" a naive count would report.
+
+### Executive report
+
+📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/data_executive_summary.html)** · [Raw HTML](samples/data_executive_summary.html) *(model name redacted)*
+
+[![Data red-teaming executive summary](images/nb06_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/data_executive_summary.html)
+
+> **Scope:** model-level (GPT-5-4 + Azure platform filter). For an application-level result with the app's own guardrails, point the runners at [`ApplicationTarget`](application_testing.md) and report the guardrail delta.
 
 ---
 

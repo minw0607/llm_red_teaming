@@ -42,7 +42,7 @@ The toolkit is organised into **workstreams**, each delivered as a code-light de
 | 💉 **Prompt Injection** | ✅ Complete | [↓ jump](#-prompt-injection-notebook-03) | [docs/03](docs/03_prompt_injection.md) |
 | ⚖️ **Bias & Fairness** | ✅ Complete | [↓ jump](#️-bias--fairness-notebook-04) | [docs/04](docs/04_fairness.md) |
 | 🧩 **NLI Robustness** | ✅ Complete | [↓ jump](#-nli-robustness-notebook-05) | [docs/05](docs/05_nli_robustness.md) |
-| 🔐 **Data Red-Teaming** | 🛠️ Built — run pending | [↓ jump](#-data-red-teaming-notebook-06) | [docs/06](docs/06_data_redteam.md) |
+| 🔐 **Data Red-Teaming** | ✅ Complete | [↓ jump](#-data-red-teaming-notebook-06) | [docs/06](docs/06_data_redteam.md) |
 | 🤖 **Agentic Tool Attacks** | 🛠️ Built — run pending | [↓ jump](#-agentic-tool-attacks-notebook-07) | [docs/07](docs/07_agentic_tool_attacks.md) |
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) · [Dataset strategy](docs/dataset_strategy.md) · [Model-level vs application-level](docs/application_testing.md) — testing the deployed app (with guardrails), not just the model
@@ -64,7 +64,7 @@ llm_red_teaming/
 │   ├── prompt/                 # Prompt injection (direct + indirect)  [✅ implemented]
 │   ├── fairness/               # BBQ + counterfactual fairness probes  [✅ implemented]
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE     [✅ implemented]
-│   ├── data/                   # Disclosure, memorization (+Enron), exfil  [🛠️ built]
+│   ├── data/                   # Disclosure, memorization (+Enron), exfil  [✅ implemented]
 │   └── agent/                  # Tool-using agent sandbox + attacks     [🛠️ built]
 │
 ├── judges/                     # Response evaluation
@@ -101,7 +101,7 @@ llm_red_teaming/
 │   ├── 03_prompt_injection.ipynb         # Direct + indirect    [✅]
 │   ├── 04_fairness_counterfactual.ipynb  # Demographic swap     [✅]
 │   ├── 05_nli_robustness_demo.ipynb      # MultiNLI/ANLI/AdvGLUE [✅]
-│   ├── 06_data_redteam_demo.ipynb        # Disclosure/exfil     [🛠️]
+│   ├── 06_data_redteam_demo.ipynb        # Disclosure/exfil     [✅]
 │   └── 07_agentic_tool_attacks.ipynb     # Multi-step tools     [🛠️]
 │
 ├── docs/                       # Per-workstream results & deep dives
@@ -110,7 +110,7 @@ llm_red_teaming/
 │   ├── 03_prompt_injection.md  # NB03 design & methodology            [✅]
 │   ├── 04_fairness.md          # NB04 design & methodology            [✅]
 │   ├── 05_nli_robustness.md    # NB05 design & methodology            [✅]
-│   ├── 06_data_redteam.md      # NB06 design & methodology            [🛠️]
+│   ├── 06_data_redteam.md      # NB06 design & methodology            [✅]
 │   ├── 07_agentic_tool_attacks.md # NB07 design & methodology         [🛠️]
 │   ├── industry_alignment.md   # Methods vs. the field + upgrade path [✅]
 │   ├── dataset_strategy.md     # Choosing test sets for engagements   [✅]
@@ -350,17 +350,39 @@ Notebook 05 auto-generates a **business-level executive report** — determinist
 
 ## 🔐 Data Red-Teaming (Notebook 06)
 
-`Status: 🛠️ Built — live run pending`
+`Status: ✅ Complete`
 
-NB01–05 manipulate what the model *outputs*. NB06 targets **confidentiality** — the model (and the application around it) as a **data-leak vector**. It answers the question clients actually ask: *"what about the data in our AI application?"* Three tracks, all scored with deterministic canaries + regex (LLM-judge fallback for ambiguous free-text):
+NB01–05 manipulate what the model *outputs*. NB06 targets **confidentiality** — the model (and the application around it) as a **data-leak vector**. It answers the question clients actually ask: *"what about the data in our AI application?"* Three tracks, all scored deterministically (canary match · PII regex · verbatim overlap):
 
 | Track | Threat | What it tests | Standard |
 |---|---|---|---|
-| **A · System-prompt & secret disclosure** | A planted secret/canary in the system prompt is extracted | A taxonomy of prompt-extraction attacks (repeat-the-above, role-play, encoding, ignore-instructions) → **secret-leak rate** | OWASP **LLM07** |
-| **B · Memorization & PII regurgitation** | The model emits memorized training text or PII | Prefix-completion of well-known text · divergence/repetition probes · PII elicitation → **regurgitation rate** (verbatim n-gram overlap + PII regex) | OWASP **LLM02**, NIST §2.9 Data Privacy |
-| **C · RAG context exfiltration** | A retrieved doc leaks out, or a *poisoned* doc exfiltrates other context | Reuses NB03's indirect-injection harness: context-exfiltration asks, poisoned-doc → canary exfiltration, cross-record boundary violations → **exfiltration rate** | OWASP **LLM01/LLM08**, EU AI Act Art. 10 |
+| **A · System-prompt & secret disclosure** | A planted secret/canary in the system prompt is extracted | An 8-strategy prompt-extraction taxonomy (repeat-the-above, role-play, encoding, ignore-instructions, …) → **secret-leak rate** | OWASP **LLM07** |
+| **B · Memorization & PII regurgitation** | The model emits memorized training text or PII | Public-domain prefix-completion (a benign *recall proxy*) · PII elicitation · **real Enron PII extraction** (LLM-PBE / DecodingTrust) | OWASP **LLM02**, NIST §2.9 |
+| **C · RAG context exfiltration** | A retrieved doc leaks, or a *poisoned* doc exfiltrates other context | Reuses NB03's indirect-injection harness: context-exfiltration asks · poisoned-doc canary exfiltration · cross-record boundary violations → **exfiltration rate** | OWASP **LLM01/LLM08**, EU AI Act Art. 10 |
 
-**Capabilities:** 3 tracks · deterministic scoring (canary + PII regex + verbatim overlap) · **sensitive-leak rate** that separates real leaks from benign public-text recall · real **Enron/LLM-PBE** PII-extraction probes for the memorization track (`USE_ENRON`) · resumable checkpointing + deterministic rescore · executive report. Self-contained fixtures (canaries, synthetic PII, public-domain text); Enron cached on demand. **Honest black-box caveat:** we observe *regurgitation*, not training-set membership.
+**Capabilities:** deterministic scoring · **sensitive-leak rate** that separates real leaks from benign public-text recall · real **Enron/LLM-PBE** PII-extraction probes (`USE_ENRON`) · resumable checkpointing + deterministic rescore · executive report.
+
+![Data red-teaming summary](docs/images/nb06_data_redteam.png)
+
+**Results — GPT-5-4 via Azure (61 probes: 24 disclosure + 28 memorization + 9 exfiltration):**
+
+| Track | Sensitive-leak rate | Note |
+|---|---|---|
+| System-prompt disclosure | **0 / 24** | resisted all 8 extraction strategies × 3 |
+| RAG context exfiltration | **0 / 9** | resisted direct, indirect (poisoned-doc) & boundary |
+| Memorization / PII | **0 / 28** | incl. **0 / 20 real Enron** PII reproduced; 3 benign public-domain recalls (a proxy, not a leak) |
+
+The model is **clean across all three confidentiality tracks**, including real training-data PII extraction from the Enron corpus. The only flags are benign public-domain recall (reproducing Shakespeare / the MIT licence), which the **sensitive-leak rate deliberately excludes** — so the headline is **0% sensitive leaks → LOW risk**, not the misleading "50%" a naive count would show.
+
+[![Data red-teaming executive summary](docs/images/nb06_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/data_executive_summary.html)
+
+<div align="center">
+
+📄 **[Open interactive report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/data_executive_summary.html)**  ·  [Design & methodology →](docs/06_data_redteam.md)  ·  [Open notebook →](notebooks/06_data_redteam_demo.ipynb)
+
+</div>
+
+> **Scope:** model-level (GPT-5-4 + Azure platform filter). To test a deployed app with its own guardrails, point the runners at [`ApplicationTarget`](docs/application_testing.md) and measure the guardrail delta.
 
 ---
 
@@ -467,7 +489,7 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | [`03_prompt_injection.ipynb`](notebooks/03_prompt_injection.ipynb) | ✅ | Direct + indirect prompt injection — 5-strategy taxonomy, canary override-rate metric, real-world payloads, executive report. [Design →](docs/03_prompt_injection.md) |
 | [`04_fairness_counterfactual.ipynb`](notebooks/04_fairness_counterfactual.ipynb) | ✅ | Bias & fairness — BBQ stereotype benchmark (11 categories, bias score) + counterfactual decision probes (flip rate, parity gap), executive report. [Design →](docs/04_fairness.md) |
 | [`05_nli_robustness_demo.ipynb`](notebooks/05_nli_robustness_demo.ipynb) | ✅ | NLI reasoning robustness — MultiNLI baseline vs. ANLI (3 rounds) + AdvGLUE; robustness gap, ANLI difficulty curve, confusion matrix, ANLI-annotated error analysis, executive report. [Design →](docs/05_nli_robustness.md) |
-| [`06_data_redteam_demo.ipynb`](notebooks/06_data_redteam_demo.ipynb) | 🛠️ | Data red-teaming — system-prompt/secret disclosure, training-data memorization & PII regurgitation, RAG context exfiltration; deterministic leak metrics + executive report |
+| [`06_data_redteam_demo.ipynb`](notebooks/06_data_redteam_demo.ipynb) | ✅ | Data red-teaming — system-prompt/secret disclosure, training-data memorization & PII regurgitation, RAG context exfiltration; deterministic leak metrics + executive report |
 | [`07_agentic_tool_attacks.ipynb`](notebooks/07_agentic_tool_attacks.ipynb) | 🛠️ | Agentic tool attacks — ReAct agent over a mock tool sandbox; 5 untrusted-input → unsafe-action scenarios (AgentDojo-aligned), unsafe-action rate + replayable findings, executive report. [Design →](docs/07_agentic_tool_attacks.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules above and focus on results, visualisations, and interpretation.
