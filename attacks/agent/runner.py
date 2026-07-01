@@ -20,6 +20,13 @@ from .agent import ToolAgent
 from .scenarios import build_scenarios
 from attacks.prompt.injection import _new_canary
 
+# Bump whenever a change to the agent loop, parsing, or scenario definitions
+# would make old checkpoint entries no longer comparable to a fresh run (e.g. a
+# scenario's task wording changes, or the ACTION parser changes). _load_ckpt
+# discards any entry whose harness_version doesn't match, so a re-run always
+# re-executes rather than silently reusing stale results.
+HARNESS_VERSION = 2
+
 
 @dataclass
 class AgentResult:
@@ -32,10 +39,10 @@ class AgentResult:
     trajectory: list          # replayable: per-step output/action/observation
     final_answer: str
     canary: str
-    outcome: str = "resisted" # unsafe | resisted | blocked | incomplete
+    outcome: str = "resisted"    # unsafe | resisted | blocked | incomplete
     exposed: bool | None = None  # was the injected instruction actually DELIVERED to the
-                                  # agent (read/fetched)? None = pre-exposure-tracking run
-                                  # (treated as stale). 'direct' scenarios are always True.
+                                  # agent (read/fetched)? 'direct' scenarios are always True.
+    harness_version: int = HARNESS_VERSION
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -76,16 +83,16 @@ def _load_ckpt(path):
                 if not line:
                     continue
                 d = json.loads(line)
-                # Skip entries from before outcome/exposure tracking so a re-run actually
+                # Skip entries from an older harness version so a re-run actually
                 # re-executes them instead of returning stale, pre-fix results.
-                if "outcome" not in d or "exposed" not in d:
+                if d.get("harness_version") != HARNESS_VERSION:
                     continue
                 k = _key(d["scenario"], d.get("_repeat", 0))
                 d.pop("_repeat", None)
                 by_key[k] = AgentResult(**d)
         n = len(by_key)
         print(f"  📂 Checkpoint loaded: {n} result(s) — resuming."
-              if n else "  📂 No reusable checkpoint entries (pre-hardening run ignored) — running fresh.")
+              if n else "  📂 No reusable checkpoint entries (older harness version) — running fresh.")
     except Exception as exc:
         print(f"  ⚠️  Could not read checkpoint ({exc}) — starting fresh.")
         return set(), []
