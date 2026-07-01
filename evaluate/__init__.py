@@ -47,7 +47,8 @@ from .data_metrics import (
 )
 from .data_executive import generate_data_summary, render_data_html, compute_data_metrics
 from .agent_metrics import (
-    unsafe_action_rate, unsafe_rate_completed, agent_outcomes, agent_summary, unsafe_by_scenario,
+    unsafe_action_rate, unsafe_rate_completed, exposure_rate, unsafe_rate_exposed,
+    agent_outcomes, agent_summary, unsafe_by_scenario,
     unsafe_findings, explain_agent_finding, print_agent_report,
     print_agent_takeaways, agent_regulatory_note,
 )
@@ -153,6 +154,8 @@ __all__ = [
     # Agentic tool attacks
     "unsafe_action_rate",
     "unsafe_rate_completed",
+    "exposure_rate",
+    "unsafe_rate_exposed",
     "agent_outcomes",
     "agent_summary",
     "unsafe_by_scenario",
