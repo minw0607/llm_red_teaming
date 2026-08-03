@@ -32,6 +32,8 @@ Each is surfaced in Step 6 with the full audit record. *(These were hidden in th
 
 ### Executive report
 
+[![Bias & fairness executive report — illustrative sample](images/nb04_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)
+
 📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/fairness_executive_summary.html)** · [Raw HTML](samples/fairness_executive_summary.html) *(model name redacted)*
 
 > ⚠️ **Illustrative sample only** — a benchmark run scored automatically (name proxies indicate disparity, not magnitude). It demonstrates the reporting format; it is not an authoritative fairness verdict of any model, and any flagged case needs human + legal review.

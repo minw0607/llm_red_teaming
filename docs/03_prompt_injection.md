@@ -20,6 +20,8 @@ Tests whether the target model can be made to **ignore its system instruction an
 
 ### Executive report
 
+[![Prompt injection executive report — illustrative sample](images/nb03_executive_summary.png)](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/injection_executive_summary.html)
+
 📄 **[Open the interactive sample report →](https://htmlpreview.github.io/?https://github.com/minw0607/llm_red_teaming/blob/main/docs/samples/injection_executive_summary.html)** · [Raw HTML](samples/injection_executive_summary.html) *(280 attempts · model name redacted)*
 
 > ⚠️ **Illustrative sample only** — the real-payload track is automated-judge-scored and the `translate` direct figures include a measurement artifact (flagged in-notebook). It demonstrates the reporting format; it is not an authoritative security verdict of any model, and flagged cases require human validation.
