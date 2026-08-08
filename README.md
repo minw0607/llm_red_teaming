@@ -6,12 +6,15 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen)]()
+[![Development: Active](https://img.shields.io/badge/Development-Active-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Project: Independent & Personal](https://img.shields.io/badge/Project-Independent%20%26%20Personal-lightgrey)](#disclaimer)
 
 *Adversarial text attacks · prompt injection · jailbreaking · fairness probing · pluggable model targets*
 
 </div>
+
+> **Status:** Independent personal research project
 
 ---
 
@@ -217,6 +220,20 @@ Contributions are welcome. To add a new attack, dataset, or testing strategy:
 2. Follow the existing module structure — attacks inherit from the base class in `attacks/base.py`
 3. Add an entry to the relevant [roadmap](docs/roadmap.md) table (with standards mapping)
 4. Open a PR with a short description of the attack and at least one worked example
+
+---
+
+<a id="disclaimer"></a>
+
+## 🧾 Disclaimer
+
+This repository is an independent personal project created outside of my employment using my own time and equipment.
+
+Unless explicitly stated otherwise, the code, notebooks, demonstrations, analyses, and documentation in this repository are developed independently, using only publicly available research papers, technical documentation, regulations, and other public sources. They do not rely on, incorporate, or disclose any confidential, proprietary, non-public, or client information obtained through my employment or professional engagements.
+
+The views, designs, implementations, and conclusions expressed in this repository are solely my own and do not represent the views of any employer, client, or affiliated organization.
+
+This repository is provided for research and educational purposes only.
 
 ---
 
