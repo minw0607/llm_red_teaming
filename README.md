@@ -53,6 +53,7 @@ Each workstream is a code-light demo notebook backed by reusable modules. Status
 | 05 | 🧩 [NLI Robustness](#-nli-robustness-notebook-05) | ✅ Complete | [notebook](notebooks/05_nli_robustness_demo.ipynb) | [docs/05](docs/05_nli_robustness.md) |
 | 06 | 🔐 [Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ Complete | [notebook](notebooks/06_data_redteam_demo.ipynb) | [docs/06](docs/06_data_redteam.md) |
 | 07 | 🤖 [Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ Built — run pending | [notebook](notebooks/07_agentic_tool_attacks.ipynb) | [docs/07](docs/07_agentic_tool_attacks.md) |
+| 08 | ⚖️ [Agentic Hiring Fairness](#️-agentic-hiring-fairness-notebook-08) | 🛠️ Built — run pending | [notebook](notebooks/08_agentic_hiring_fairness.ipynb) | [docs/08](docs/08_agentic_hiring_fairness.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
@@ -70,13 +71,14 @@ llm_red_teaming/
 │   ├── fairness/                # BBQ + counterfactual fairness probes            [✅]
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE               [✅]
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
+│   ├── hiring/                 # Matched-pair résumé corpus + mock ATS agent audit  [🛠️]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
 ├── targets/                    # Pluggable model connectors — OpenAI-compatible, Azure, ApplicationTarget
 ├── evaluate/                   # Metrics & reporting — ASR, risk score, regulatory mapping, executive reports
 ├── eval_datasets/               # Cached evaluation datasets (SST-2, JailbreakBench, HarmBench, BBQ, NLI, …)
-├── notebooks/                  # The 7 demo notebooks (see Workstreams table above)
+├── notebooks/                  # The 8 demo notebooks (see Workstreams table above)
 ├── docs/                       # Per-workstream results & deep dives (see table above) + roadmap/methodology
 │
 ├── configs/                    # Experiment configuration files
@@ -195,6 +197,20 @@ The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https:
 Harness, sandbox, 5 scenarios, metrics, and executive report are built and validated end-to-end; results are published here after a run against the assessed model.
 
 📄 [Design & methodology →](docs/07_agentic_tool_attacks.md)
+
+---
+
+## ⚖️ Agentic Hiring Fairness (Notebook 08)
+
+`🛠️ Built — run pending`
+
+Use-case-specific fairness testing of an **AI recruiting agent** — the closest thing here to a real regulatory bias audit. NB04 asks a model about one candidate at a time; a real AEDT screens a **pool** and advances a shortlist, which is what [NYC Local Law 144](https://www.nycbiasaudit.com/blog/how-to-comply-with-the-nyc-bias-audit-law) actually regulates: **selection rate** per group and the **impact ratio** between them, with **< 0.80** flagging adverse impact (EEOC four-fifths rule).
+
+**What it tests:** a tool-using agent screens a **qualification-matched résumé corpus** (identical credentials, only the name varies) inside a mock applicant tracking system. Because matched candidates are equivalent by construction, any selection disparity is *causal*. Beyond allocation it measures **triage attention** (whose résumé was even opened), **retrieval rank** (name-driven ranking before the LLM reasons — replicating [Wilson & Caliskan, AIES 2024](https://arxiv.org/abs/2407.20371)), and **multi-turn drift** ([FairMT-Bench, ICLR 2025](https://arxiv.org/abs/2410.19317)).
+
+**What makes the number trustworthy:** position control (roster re-shuffled per repeat — without it a fair screener produces a *spurious* adverse-impact finding), a validity check that selection tracks qualifications, significance testing (Fisher exact + Holm–Bonferroni — uncorrected, ~30% of fair runs would flag something), and a **power analysis** that reports the minimum detectable ratio, so a clean-but-underpowered run can never read as a pass.
+
+📄 [Design, methodology, power analysis & regulatory mapping →](docs/08_agentic_hiring_fairness.md)
 
 ---
 

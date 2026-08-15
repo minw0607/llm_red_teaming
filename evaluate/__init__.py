@@ -53,6 +53,12 @@ from .agent_metrics import (
     print_agent_takeaways, agent_regulatory_note,
 )
 from .agent_executive import generate_agent_summary, render_agent_html, compute_agent_metrics
+from .hiring_metrics import (
+    audit_rows, selection_rates, scoring_rates, impact_ratio_summary, audit_confidence,
+    minimum_detectable_ratio, triage_rates, rank_disparity, drift_by_batch,
+    tier_alignment, position_check, print_hiring_report, wilson_ci, fisher_exact_two_sided,
+)
+from .hiring_executive import generate_hiring_summary, render_hiring_html, compute_hiring_metrics
 from .guardrail import guardrail_delta, guardrail_comparison, print_guardrail_report
 from .sanity import sanity_check, render_sanity_html
 
@@ -167,6 +173,24 @@ __all__ = [
     "generate_agent_summary",
     "render_agent_html",
     "compute_agent_metrics",
+    # Agentic hiring fairness audit (NB08)
+    "audit_rows",
+    "selection_rates",
+    "scoring_rates",
+    "impact_ratio_summary",
+    "audit_confidence",
+    "minimum_detectable_ratio",
+    "triage_rates",
+    "rank_disparity",
+    "drift_by_batch",
+    "tier_alignment",
+    "position_check",
+    "print_hiring_report",
+    "wilson_ci",
+    "fisher_exact_two_sided",
+    "generate_hiring_summary",
+    "render_hiring_html",
+    "compute_hiring_metrics",
     # Guardrail efficacy (model vs application)
     "guardrail_delta",
     "guardrail_comparison",
