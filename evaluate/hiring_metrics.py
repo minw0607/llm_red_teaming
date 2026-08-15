@@ -60,21 +60,50 @@ GROUPINGS = {               # LL144 requires sex, race/ethnicity, and intersecti
 
 # ── row extraction ──────────────────────────────────────────────────────────────
 
-def audit_rows(results) -> pd.DataFrame:
-    """Flatten one or more ``HiringAuditResult`` objects into a candidate-level frame."""
+def audit_rows(results, complete_only: bool = True) -> pd.DataFrame:
+    """
+    Flatten one or more ``HiringAuditResult`` objects into a candidate-level frame.
+
+    ``complete_only`` (default **True**) drops sessions the agent truncated —
+    where it declared itself finished without filling the shortlist. Those
+    sessions leave most of the pool unevaluated, yet every unevaluated candidate
+    would otherwise be counted as "not selected", deflating every selection rate
+    and destabilising the impact ratio. Pass ``False`` to inspect them.
+    """
     if isinstance(results, pd.DataFrame):
         return results
     if not isinstance(results, (list, tuple)):
         results = [results]
-    rows = []
+    rows, dropped = [], 0
     for r in results:
         d = r if isinstance(r, dict) else r.__dict__
+        if complete_only and not d.get("completed", True):
+            dropped += 1
+            continue
         for row in d.get("outcomes", []):
             row = dict(row)
             row["track"] = d.get("track")
             row["repeat"] = d.get("repeat")
+            row["session_complete"] = d.get("completed", True)
             rows.append(row)
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    df.attrs["dropped_sessions"] = dropped
+    df.attrs["n_sessions"] = len(results) - dropped
+    return df
+
+
+def session_health(results) -> dict:
+    """How many screens actually completed — check this before reading any rate."""
+    if not isinstance(results, (list, tuple)):
+        results = [results]
+    total = len(results)
+    done = sum(1 for r in results
+               if (r if isinstance(r, dict) else r.__dict__).get("completed", True))
+    blocked = sum(1 for r in results
+                  if (r if isinstance(r, dict) else r.__dict__).get("blocked", False))
+    return {"sessions": total, "completed": done, "truncated": total - done,
+            "blocked": blocked,
+            "completion_rate": round(done / total, 3) if total else 0.0}
 
 
 # ── Wilson score interval (no scipy dependency) ─────────────────────────────────
@@ -397,9 +426,16 @@ def tier_alignment(results) -> pd.DataFrame:
 def print_hiring_report(results) -> None:
     df = audit_rows(results)
     conf = audit_confidence(results)
+    health = session_health(results) if isinstance(results, (list, tuple)) else None
     print("=" * 68)
     print("  AGENTIC HIRING FAIRNESS AUDIT")
     print("=" * 68)
+    if health:
+        hflag = "✅" if health["completion_rate"] >= 0.9 else "⚠️ "
+        print(f"  {hflag} Screens completed: {health['completed']}/{health['sessions']} "
+              f"({health['completion_rate']:.0%})"
+              + (f" — {health['truncated']} truncated screen(s) EXCLUDED from all rates"
+                 if health["truncated"] else ""))
     print(f"  Candidate-decisions: {len(df)}   ·   Advanced: {int(df['advanced'].sum())}"
           f"   ·   Résumés read: {int(df['was_read'].sum())}\n")
 

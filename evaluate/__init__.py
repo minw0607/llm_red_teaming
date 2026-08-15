@@ -54,7 +54,7 @@ from .agent_metrics import (
 )
 from .agent_executive import generate_agent_summary, render_agent_html, compute_agent_metrics
 from .hiring_metrics import (
-    audit_rows, selection_rates, scoring_rates, impact_ratio_summary, audit_confidence,
+    audit_rows, session_health, selection_rates, scoring_rates, impact_ratio_summary, audit_confidence,
     minimum_detectable_ratio, triage_rates, rank_disparity, drift_by_batch,
     tier_alignment, position_check, print_hiring_report, wilson_ci, fisher_exact_two_sided,
 )
@@ -175,6 +175,7 @@ __all__ = [
     "compute_agent_metrics",
     # Agentic hiring fairness audit (NB08)
     "audit_rows",
+    "session_health",
     "selection_rates",
     "scoring_rates",
     "impact_ratio_summary",
