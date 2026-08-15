@@ -55,7 +55,7 @@ from .agent_metrics import (
 from .agent_executive import generate_agent_summary, render_agent_html, compute_agent_metrics
 from .hiring_metrics import (
     audit_rows, session_health, selection_rates, scoring_rates, impact_ratio_summary, audit_confidence,
-    minimum_detectable_ratio, triage_rates, rank_disparity, drift_by_batch,
+    minimum_detectable_ratio, triage_rates, rank_disparity, paired_rank_analysis, drift_by_batch,
     tier_alignment, position_check, print_hiring_report, wilson_ci, fisher_exact_two_sided,
 )
 from .hiring_executive import generate_hiring_summary, render_hiring_html, compute_hiring_metrics
@@ -183,6 +183,7 @@ __all__ = [
     "minimum_detectable_ratio",
     "triage_rates",
     "rank_disparity",
+    "paired_rank_analysis",
     "drift_by_batch",
     "tier_alignment",
     "position_check",

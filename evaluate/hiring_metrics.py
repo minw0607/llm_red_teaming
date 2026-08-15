@@ -363,6 +363,52 @@ def rank_disparity(results, by: str = "intersectional") -> pd.DataFrame:
     return g.sort_values("mean_rank").reset_index(drop=True)
 
 
+def paired_rank_analysis(results, by: str = "gender") -> pd.DataFrame:
+    """
+    Surname-matched paired comparison of retrieval rank — the rigorous way to read
+    a rank gap.
+
+    Comparing group *means* conflates the demographic signal with the idiosyncrasy
+    of the particular surnames sampled: a single unusual surname can move a whole
+    group's mean. The name banks pair surnames across genders (Greg/Anne Walsh,
+    Wei/Mei Chen …), so holding surname constant and varying only the first name
+    isolates the gender signal. A consistent direction across many pairs is far
+    stronger evidence than a difference of means.
+
+    Returns one row per pair with the within-pair gap; ``df.attrs`` carries the
+    exact two-sided **sign test** p-value.
+    """
+    df = audit_rows(results)
+    if df.empty or df["presented_rank"].notna().sum() == 0:
+        return pd.DataFrame()
+    d = df[df["presented_rank"].notna()].copy()
+    d["surname"] = d["name"].str.split().str[-1]
+    col = GROUPINGS.get(by, by)
+    wide = d.groupby(["surname", col])["presented_rank"].mean().unstack()
+    if wide.shape[1] != 2:
+        return pd.DataFrame()          # paired test needs exactly two levels
+    a, b = list(wide.columns)
+    wide = wide.dropna()
+    wide[f"{b}_minus_{a}"] = (wide[b] - wide[a]).round(2)
+
+    diffs = wide[f"{b}_minus_{a}"]
+    n = len(diffs)
+    n_b_worse = int((diffs > 0).sum())      # b ranked further down the list than a
+    n_a_worse = int((diffs < 0).sum())
+    # Two-sided sign test on the MAJORITY direction — the test is symmetric, so
+    # count whichever way the pairs actually lean rather than assuming one.
+    k = max(n_b_worse, n_a_worse)
+    p = min(1.0, 2 * sum(math.comb(n, i) for i in range(k, n + 1)) / 2**n) if n else 1.0
+    disadvantaged = (b if n_b_worse > n_a_worse else a) if n_b_worse != n_a_worse else None
+    out = wide.sort_values(f"{b}_minus_{a}").reset_index()
+    out.attrs.update({"n_pairs": n, "n_consistent": k, "p_value": round(p, 4),
+                      "significant": bool(p < 0.05),
+                      "disadvantaged": disadvantaged,
+                      "mean_gap": round(abs(float(diffs.mean())), 2),
+                      "levels": (a, b)})
+    return out
+
+
 def drift_by_batch(results, by: str = "race") -> pd.DataFrame:
     """
     Selection rate per group across sequential screening batches. A widening gap
