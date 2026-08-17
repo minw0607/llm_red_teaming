@@ -109,13 +109,42 @@ notebooks/08_agentic_hiring_fairness.ipynb   # Steps 0–9
 
 ## Regulatory mapping
 
-| Framework | Reference | Why it applies |
+The rules do not all ask for the same thing, so precision matters. See Part 4 of the notebook
+for the full treatment.
+
+### Direct obligations
+
+| Rule | In force | Requirement | Coverage here |
+|---|---|---|---|
+| **NYC Local Law 144** | Jul 2023 | annual independent bias audit; publish selection rates + impact ratios by sex, race, intersectional | ✅ exactly the metric computed. *Gap:* expects real historical applicants; we use synthetic matched pairs |
+| **Illinois HB 3773** | 1 Jan 2026 | prohibits AI with a **discriminatory effect** (strict liability, intent irrelevant); bans ZIP as proxy; notice duty | ✅ effect-testing is the notebook's purpose. *Gap:* no ZIP-proxy test; notice is a process control |
+| **California FEHA ADS** | 1 Oct 2025 | covers tools that screen, score, **rank** or recommend even with a human in the loop; testing before/after; **4-year retention** | ✅ the "rank" wording is why the retrieval track matters; Step 9 writes the retention artefacts |
+| **EU AI Act** | high-risk duties from Aug 2026 | employment AI is Annex III high-risk — bias testing, documentation, logging, oversight | ✅ partially: testing + documentation; logging/oversight are deployment controls |
+| **EEOC / Title VII** | long-standing | disparate impact; four-fifths rule | ✅ the 0.80 threshold plus significance testing |
+
+### Relevant but different
+
+| Rule | Status | Why it is not a direct fit |
 |---|---|---|
-| **NYC Local Law 144** | annual AEDT bias audit; selection rate + impact ratio | this notebook computes exactly that metric |
-| **EEOC / Title VII** | four-fifths rule; disparate impact | the 0.80 threshold plus significance testing |
-| **EU AI Act** | **Annex III** — employment is high-risk | mandates bias testing and documentation |
-| **NIST AI 600-1** | §2.8 Harmful Bias and Homogenization | the underlying risk category |
-| **Colorado (revised, eff. Jan 2027)** | ADMT in consequential decisions | hiring is a covered consequential decision |
+| **Colorado SB 26-189** | eff. 1 Jan 2027 | repealed/replaced the earlier AI Act and **removed the mandatory bias audit**, moving to transparency, notice and human review. Hiring remains a "consequential decision", so testing is good practice but no longer commanded |
+| **Texas TRAIGA** | 1 Jan 2026 | **disparate impact alone does not establish a violation** — intent is required. A tool could fail this audit and still comply |
+
+### Voluntary frameworks
+
+**NIST AI RMF / AI 600-1 §2.8** (Harmful Bias and Homogenization) — the risk taxonomy this sits
+under. **ISO/IEC 42001** — certification audits look for documented, repeatable bias evaluation,
+which the Step 9 artefacts provide.
+
+### Deliberately not cited
+
+**OWASP LLM Top 10** and **MITRE ATLAS** are security frameworks with no fairness or bias
+category. OWASP is the right frame for NB02/03/06/07; ATLAS catalogues adversarial attacks, and
+bias is a harm the system produces without an attacker. Forcing either mapping would
+misrepresent both the finding and the framework.
+
+> Only NYC LL144 prescribes the exact statistic computed here. Illinois and California make the
+> underlying question legally consequential without prescribing a method. None of this is legal
+> advice; a compliance audit needs the employer's own data and a qualified independent auditor.
 
 ---
 
