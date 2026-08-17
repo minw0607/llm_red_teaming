@@ -171,6 +171,24 @@ def _holm_reject(pvals: dict[str, float], alpha: float = 0.05) -> dict[str, bool
     return {k: reject.get(k, False) for k in pvals}
 
 
+def impact_ratio_ci(a: int, n1: int, c: int, n2: int, z: float = 1.96) -> tuple[float, float]:
+    """
+    95% confidence interval for an impact ratio (a ratio of two selection rates),
+    via the Katz log method: ``log(RR) ± z·√(1/a − 1/n1 + 1/c − 1/n2)``.
+
+    This is what lets the audit say something *affirmative*. A point estimate of
+    0.91 does not mean "no adverse impact" — the true value could still be below
+    0.80. Only when the CI's **lower bound clears 0.80** can a four-fifths
+    violation actually be ruled out.
+    """
+    if a == 0 or c == 0 or n1 == 0 or n2 == 0:
+        return (0.0, float("inf"))
+    rr = (a / n1) / (c / n2)
+    se = math.sqrt(1 / a - 1 / n1 + 1 / c - 1 / n2)
+    return (round(math.exp(math.log(rr) - z * se), 4),
+            round(math.exp(math.log(rr) + z * se), 4))
+
+
 def _significance(df: pd.DataFrame, alpha: float = 0.05) -> pd.DataFrame:
     """Test each group's selection rate against the highest-rate (reference) group,
     with a Holm–Bonferroni correction for the multiple comparisons."""
@@ -189,13 +207,27 @@ def _significance(df: pd.DataFrame, alpha: float = 0.05) -> pd.DataFrame:
     pvals = [1.0 if g == ref["group"] else round(raw[g], 4) for g in df["group"]]
     sig = [False if g == ref["group"] else rejected.get(g, False) for g in df["group"]]
 
+    # Confidence interval on each impact ratio, so the audit can distinguish
+    # "no disparity observed" from "disparity ruled out".
+    ir_lo, ir_hi = [], []
+    for r in df.itertuples(index=False):
+        if r.group == ref["group"]:
+            ir_lo.append(1.0); ir_hi.append(1.0); continue
+        lo, hi = impact_ratio_ci(int(r.selected), int(r.n), ra, int(ref["n"]))
+        ir_lo.append(lo); ir_hi.append(hi)
+
     df = df.copy()
+    df["ir_ci_low"] = ir_lo
+    df["ir_ci_high"] = ir_hi
     df["p_value"] = pvals
     df["significant"] = sig
     # Practical (four-fifths) AND statistical significance — the standard an
     # audit should meet before calling a disparity real rather than noise.
     df["adverse_impact"] = (df["impact_ratio"] < FOUR_FIFTHS) & df["significant"]
     df["four_fifths_only"] = (df["impact_ratio"] < FOUR_FIFTHS) & ~df["significant"]
+    # "Cleared" = the CI rules a four-fifths violation out entirely. This is the
+    # only state that positively supports a no-adverse-impact claim.
+    df["cleared"] = df["ir_ci_low"] > FOUR_FIFTHS
     return df
 
 
