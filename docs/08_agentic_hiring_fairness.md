@@ -4,7 +4,59 @@
 
 Use-case-specific fairness testing of an **AI recruiting agent** — the closest thing in this toolkit to a real regulatory bias audit.
 
-> **Status:** harness, corpus, metrics, and executive report are **built and validated end-to-end** (including against synthetic ground-truth data with known bias). Live results are published here after a run against the assessed model.
+> **Status:** ✅ Complete — run against GPT-5-4 (Azure), 3,000 qualification-matched hiring decisions. Results below.
+
+---
+
+## Results — GPT-5-4 (Azure)
+
+![Agentic hiring fairness audit](images/nb08_hiring_fairness.png)
+
+**Run:** 25 of 25 screening sessions completed · 3,000 candidate-decisions · 208 advanced (6.9% overall selection rate) · 120 applicants per screen drawn from a matched-pair corpus.
+
+### Allocation — the LL144 metric
+
+| Grouping | Worst group | Selection rate | Impact ratio | 95% CI | p (Fisher, Holm-corrected) | Verdict |
+|---|---|---:|---:|---|---:|---|
+| **Sex** | female | 6.80% | **0.962** | 0.740 – 1.251 | 0.829 | 🟢 no adverse impact |
+| **Race** | Black | 6.53% | **0.907** | 0.625 – 1.318 | 0.683 | 🟢 no adverse impact |
+| Intersectional (8 cells) | Black female | 5.33% | 0.625 | — | 0.113 | ⚪ below 0.80 but **not significant** |
+
+Selection rates were strikingly tight: White 7.20% · Asian 7.07% · Hispanic 6.93% · Black 6.53%. The intersectional cell is the noisiest breakdown — 8 groups of ~375 decisions each — and 0.625 there is what sampling noise looks like at that cell size, not a finding. The harness reports it as *below threshold but unconfirmed* rather than flagging it, which is exactly the distinction the significance test exists to draw.
+
+### The controls held
+
+| Control | Result |
+|---|---|
+| **Validity** — does selection track qualifications? | strong 11.5% › medium 5.8% › weak **0.0%** — the screener is doing its job, so a null result is meaningful |
+| **Position** — is roster order confounding the result? | 5.6-point spread across positions after per-repeat reshuffling — balanced |
+| **Completion** | 25/25 sessions ran to the end; no truncated screens contributing phantom rejections |
+| **Multi-turn drift** | no monotonic trend across 12 batches — disparity does not accumulate over a longer conversation |
+
+### The finding: the retriever, not the model
+
+The allocation track is clean. The **ranking** track is not.
+
+An embedding model orders candidates before the LLM ever sees them. Given résumés that are identical except for the applicant's name, it placed **female-named candidates ~13 positions lower** (mean rank 61.5 vs 48.1 out of 120) — and the effect held in **11 of 12 surname-matched pairs** (sign test **p = 0.0063**). Holding the surname constant isolates gender from any quirk of a particular name.
+
+| Surname | female mean rank | male mean rank | female penalty |
+|---|---:|---:|---:|
+| Jefferson | 75.0 | 44.8 | +30.2 |
+| Chen | 52.7 | 23.0 | +29.7 |
+| Schroeder | 68.6 | 42.4 | +26.2 |
+| Walsh | 67.9 | 42.1 | +25.8 |
+| … | | | |
+| Patel | 43.2 | 52.6 | −9.4 *(only reversal)* |
+
+A **race** gap appears in the same data — Black-named candidates average rank 68.4 vs 56.7 for Asian-named, an 11.7-position gap — but it does **not** survive the paired test: it is driven almost entirely by one surname ("Booker", mean rank ~100 for both sexes). This is precisely why the corpus uses three surnames per group; with one name per group that artefact would have been reported as a race finding.
+
+This is the argument for auditing **agents** rather than bare models. The bias sits in a retrieval component that never makes a decision and never reasons — no amount of prompt-level fairness work on the LLM would surface it, and California's FEHA ADS rules cover it explicitly because they reach any tool that *ranks* candidates.
+
+### What this run can and cannot say
+
+- **Can say:** no adverse impact was detected on sex or race at the 0.80 threshold, on a screener demonstrated to be responsive to qualifications, with position and multiple-comparison confounds controlled.
+- **Cannot say:** that the tool is fair. The run's **minimum detectable ratio is 0.531** — it had the power to catch a disparity at or below that, but a borderline violation just under 0.80 could have passed unnoticed. The report states this rather than presenting a clean run as a pass.
+- **Cannot say:** anything about this employer's real applicants. Synthetic matched pairs buy clean causal inference at the cost of realism; an LL144 compliance audit uses the employer's own historical data and an independent auditor.
 
 ---
 

@@ -53,7 +53,7 @@ Each workstream is a code-light demo notebook backed by reusable modules. Status
 | 05 | 🧩 [NLI Robustness](#-nli-robustness-notebook-05) | ✅ Complete | [notebook](notebooks/05_nli_robustness_demo.ipynb) | [docs/05](docs/05_nli_robustness.md) |
 | 06 | 🔐 [Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ Complete | [notebook](notebooks/06_data_redteam_demo.ipynb) | [docs/06](docs/06_data_redteam.md) |
 | 07 | 🤖 [Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ Built — run pending | [notebook](notebooks/07_agentic_tool_attacks.ipynb) | [docs/07](docs/07_agentic_tool_attacks.md) |
-| 08 | ⚖️ [Agentic Hiring Fairness](#️-agentic-hiring-fairness-notebook-08) | 🛠️ Built — run pending | [notebook](notebooks/08_agentic_hiring_fairness.ipynb) | [docs/08](docs/08_agentic_hiring_fairness.md) |
+| 08 | ⚖️ [Agentic Hiring Fairness](#️-agentic-hiring-fairness-notebook-08) | ✅ Complete | [notebook](notebooks/08_agentic_hiring_fairness.ipynb) | [docs/08](docs/08_agentic_hiring_fairness.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
@@ -71,7 +71,7 @@ llm_red_teaming/
 │   ├── fairness/                # BBQ + counterfactual fairness probes            [✅]
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE               [✅]
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
-│   ├── hiring/                 # Matched-pair résumé corpus + mock ATS agent audit  [🛠️]
+│   ├── hiring/                 # Matched-pair résumé corpus + mock ATS agent audit  [✅]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
@@ -202,7 +202,7 @@ Harness, sandbox, 5 scenarios, metrics, and executive report are built and valid
 
 ## ⚖️ Agentic Hiring Fairness (Notebook 08)
 
-`🛠️ Built — run pending`
+`✅ Complete`
 
 Use-case-specific fairness testing of an **AI recruiting agent** — the closest thing here to a real regulatory bias audit. NB04 asks a model about one candidate at a time; a real AEDT screens a **pool** and advances a shortlist, which is what [NYC Local Law 144](https://www.nycbiasaudit.com/blog/how-to-comply-with-the-nyc-bias-audit-law) actually regulates: **selection rate** per group and the **impact ratio** between them, with **< 0.80** flagging adverse impact (EEOC four-fifths rule).
 
@@ -210,7 +210,24 @@ Use-case-specific fairness testing of an **AI recruiting agent** — the closest
 
 **What makes the number trustworthy:** position control (roster re-shuffled per repeat — without it a fair screener produces a *spurious* adverse-impact finding), a validity check that selection tracks qualifications, significance testing (Fisher exact + Holm–Bonferroni — uncorrected, ~30% of fair runs would flag something), and a **power analysis** that reports the minimum detectable ratio, so a clean-but-underpowered run can never read as a pass.
 
-📄 [Design, methodology, power analysis & regulatory mapping →](docs/08_agentic_hiring_fairness.md)
+![Agentic hiring fairness audit](docs/images/nb08_hiring_fairness.png)
+
+**Results — GPT-5-4 via Azure (3,000 qualification-matched hiring decisions across 25 screening sessions):**
+
+| Surface | Result |
+|---|---|
+| **Allocation** — impact ratio by sex | **0.96** — 🟢 no adverse impact |
+| **Allocation** — impact ratio by race | **0.91** — 🟢 no adverse impact |
+| Allocation — intersectional (8 groups) | 0.62 worst cell, *not significant* (p=0.11) — the noisiest breakdown |
+| **Retrieval ranking** | 🔴 **female-named candidates rank ~13 positions lower with identical résumés** |
+
+**The headline finding: the model's hiring decisions were fair, but the retriever feeding it was not.** Selection rates were strikingly tight (White 7.2% · Asian 7.1% · Hispanic 6.9% · Black 6.5%), and no disparity survived significance testing. But the embedding step that *orders* candidates before the LLM ever sees them penalised female-named applicants in **11 of 12 surname-matched pairs** (sign test **p=0.0063**) — holding the surname constant, so it is a gender effect rather than a quirk of particular names. A race gap in the same data did **not** survive that test: it was driven almost entirely by one surname, which is exactly why the corpus uses three names per group.
+
+That is the case for auditing **agents** rather than bare models: this bias occurs before the model reasons, so no amount of prompt-level fairness work would catch it.
+
+> **Scope, stated honestly.** No adverse impact was *detected*, but with a 0.531 detection limit this run cannot *certify* the absence of a borderline violation — the notebook reports that distinction rather than presenting a clean run as a pass. Synthetic matched-pair applicants give clean causal inference; a real LL144 audit uses the employer's own historical data.
+
+📄 [Design, methodology, power analysis & regulatory mapping →](docs/08_agentic_hiring_fairness.md)  ·  [Open notebook →](notebooks/08_agentic_hiring_fairness.ipynb)
 
 ---
 
