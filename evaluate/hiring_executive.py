@@ -4,7 +4,7 @@ evaluate/hiring_executive.py — Executive report for the agentic hiring audit (
 Same pattern as the other workstreams: deterministic metrics + a judge-LLM
 narrative, rendered as a business-level HTML report. The prompt is aggregate-only
 and the report leads with the two things a reader must not miss — whether the
-run was **statistically powered**, and whether any flagged disparity is
+run was **valid**, what it can and cannot certify, and whether any flagged disparity is
 **confirmed** (fails four-fifths *and* significant) rather than noise.
 """
 
@@ -50,7 +50,14 @@ def compute_hiring_metrics(results) -> dict:
         "triage": triage,
         "rank_disparity": ranks.to_dict("records") if not ranks.empty else [],
         "confidence": conf,
-        "powered": bool(conf.get("reliable")),
+        # Two different questions, previously conflated:
+        #   valid        — is this audit readable at all? (screener worked, screens ran)
+        #   can_certify  — is it big enough to PROVE absence of a violation?
+        # Only `valid` may trigger INCONCLUSIVE; `can_certify` is a scope caveat.
+        "valid": bool(valid_screener and (session_health(results).get("completed", 0) >= 5
+                                          if isinstance(results, (list, tuple)) else True)),
+        "can_certify": bool(conf.get("reliable")),
+        "powered": bool(conf.get("reliable")),   # kept for backwards compatibility
         "mdr": conf.get("minimum_detectable_ratio"),
         "confirmed_adverse": confirmed,
         "unconfirmed_flags": unconfirmed,
@@ -223,12 +230,22 @@ def render_hiring_html(data: dict, m: dict, config: dict | None = None) -> str:
         'demographic proxies. This demonstrates the audit methodology (LL144 impact ratio with '
         'significance testing) — it is not a compliance determination for any production system.</div>',
     ]
-    if not m["powered"] or not m["valid_screener"]:
-        why = ("the agent did not select on qualifications, so fairness metrics are not "
-               "interpretable" if not m["valid_screener"] else m["confidence"].get("reason"))
+    if not m.get("valid", True):
+        why = ("the agent did not select on qualifications, so the fairness metrics are not "
+               "interpretable" if not m["valid_screener"]
+               else "too few screens completed to compute meaningful selection rates")
         parts.append('<div style="background:#FFEBEE;border-bottom:1px solid #FFCDD2;padding:9px 28px;'
                      f'font-size:11.5px;color:#B71C1C;line-height:1.5;">🔬 <strong>Result is '
                      f'inconclusive:</strong> {why}.</div>')
+    elif not m.get("can_certify", False):
+        mdr = m.get("mdr")
+        parts.append('<div style="background:#E3F2FD;border-bottom:1px solid #BBDEFB;padding:9px 28px;'
+                     'font-size:11.5px;color:#0D47A1;line-height:1.5;">📏 <strong>Scope of this '
+                     'audit.</strong> The screen ran correctly and no adverse impact was detected. '
+                     f'This sample can confirm a disparity down to an impact ratio of {mdr}, so it '
+                     'establishes <em>no evidence of discrimination</em> — it does not by itself '
+                     '<em>certify</em> that a borderline violation is absent. A larger run would be '
+                     'needed for that.</div>')
 
     parts += [
         f'<div style="background:{rl_bg};border-left:6px solid {rl_fg};padding:14px 24px;display:flex;'
@@ -246,9 +263,12 @@ def render_hiring_html(data: dict, m: dict, config: dict | None = None) -> str:
              + _stat(str(m["n_advanced"]), "Advanced")
              + _stat(str(n_conf), "Confirmed Adverse",
                      "#2E7D32" if n_conf == 0 else "#C62828")
-             + _stat("yes" if m["powered"] else "no", "Powered",
-                     "#2E7D32" if m["powered"] else "#C62828")
-             + _stat(f"{mdr}" if mdr is not None else "n/a", "Min. Detectable IR") + '</div>')
+             + _stat(f'{m.get("mdr")}' if m.get("mdr") is not None else "n/a",
+                     "Detection Limit (IR)",
+                     "#2E7D32" if m.get("can_certify") else "#EF6C00")
+             + _stat(f'{(m.get("health") or {}).get("completed", "-")}'
+                     f'/{(m.get("health") or {}).get("sessions", "-")}', "Screens Completed",
+                     "#2E7D32" if m.get("valid") else "#C62828") + '</div>')
     parts.append(_section("Audit Scope & Validity", stats, "🎯"))
 
     rows = ""
