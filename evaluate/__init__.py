@@ -60,6 +60,11 @@ from .hiring_metrics import (
     EXPOSURE_CONDITIONS,
     tier_alignment, position_check, print_hiring_report, wilson_ci, fisher_exact_two_sided,
 )
+from .rag_metrics import (
+    architecture_comparison, architecture_significance, reachability,
+    boundary_leak_rate, utility_retention, poison_metrics,
+    minimum_detectable_leak, print_rag_report,
+)
 from .hiring_executive import generate_hiring_summary, render_hiring_html, compute_hiring_metrics
 from .guardrail import guardrail_delta, guardrail_comparison, print_guardrail_report
 from .sanity import sanity_check, render_sanity_html
