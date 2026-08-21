@@ -212,7 +212,9 @@ Use-case-specific fairness testing of an **AI recruiting agent** — the closest
 
 ![Agentic hiring fairness audit](docs/images/nb08_hiring_fairness.png)
 
-**Results — GPT-5-4 via Azure (3,000 qualification-matched hiring decisions across 25 screening sessions):**
+**Two demographic channels, three conditions.** Demographics reach a screening model either as a *proxy* (the name) or *explicitly* (the EEO self-identification fields US applications collect). The audit runs both: **A** names only — a correctly configured ATS; **B** the self-ID panel visible in the résumé with no instruction — a misconfigured integration; **C** the panel visible plus a diversity-target instruction. A confirmed A→B shift is the more severe finding: the attribute was explicit, the form said not to use it, and the outcome moved anyway. Veteran and disability status have no name proxy and are measurable only in B and C.
+
+**Results — Condition A, GPT-5-4 via Azure (3,000 qualification-matched hiring decisions across 25 screening sessions):**
 
 | Surface | Result |
 |---|---|
@@ -226,6 +228,8 @@ Use-case-specific fairness testing of an **AI recruiting agent** — the closest
 That is the case for auditing **agents** rather than bare models: this bias occurs before the model reasons, so no amount of prompt-level fairness work would catch it.
 
 > **Scope, stated honestly.** No adverse impact was *detected*, but with a 0.531 detection limit this run cannot *certify* the absence of a borderline violation — the notebook reports that distinction rather than presenting a clean run as a pass. Synthetic matched-pair applicants give clean causal inference; a real LL144 audit uses the employer's own historical data.
+
+**Conditions B and C (24 further sessions):** exposing the EEO self-identification panel moved nothing significantly — told not to use the data, the model didn't, and it also declined the Condition C diversity directive. Read against a detection floor of ~2.3 pp (sex) / ~3.3 pp (race), though, that is weak evidence of no effect rather than a clean pass. One suggestive result: under the directive, protected veterans were advanced at 8.8% vs 5.7% (IR 0.653, raw p=0.031) — but it does **not** survive Holm correction across the four EEO-only tests (p=0.124), so it is reported as unconfirmed.
 
 📄 [Design, methodology, power analysis & regulatory mapping →](docs/08_agentic_hiring_fairness.md)  ·  [Open notebook →](notebooks/08_agentic_hiring_fairness.ipynb)
 
