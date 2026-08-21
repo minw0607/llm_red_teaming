@@ -1,5 +1,7 @@
 # Bias & Fairness — Design & Methodology (Notebook 04)
 
+> **Paired with a use case.** This is the *benchmark* half — generic counterfactual and BBQ probes against a foundation model. For the deployment-shaped audit of the same risk (an AI recruiting agent screening a candidate pool, with LL144 impact ratios and significance testing), see **[NB04b — Hiring Fairness Audit](04b_hiring_fairness_audit.md)**.
+
 [← Back to README](../README.md) · [Open notebook](../notebooks/04_fairness_counterfactual.ipynb)
 
 Measures whether the model treats people differently based on a protected attribute. This is a **different risk class** from NB01–03.

@@ -1,8 +1,10 @@
-# Agentic Hiring Fairness Audit — Design & Methodology (Notebook 08)
+# Hiring Fairness Audit — Design & Methodology (Notebook 04b)
 
-[← Back to README](../README.md) · [Open notebook](../notebooks/08_agentic_hiring_fairness.ipynb)
+[← Back to README](../README.md) · [Open notebook](../notebooks/04b_hiring_fairness_audit.ipynb)
 
-Use-case-specific fairness testing of an **AI recruiting agent** — the closest thing in this toolkit to a real regulatory bias audit.
+**The use-case half of the fairness pair.** [NB04](04_fairness.md) is the generic benchmark — counterfactual probes against a foundation model. This is the deployment-shaped audit: an **AI recruiting agent** screening a candidate pool, which is the closest thing in this toolkit to a real regulatory bias audit.
+
+> **Cross-cutting by design.** Filed under fairness because the *harm* it measures is bias, but it also exercises the agent loop from [NB07](07_agentic_tool_attacks.md), embedding retrieval, multi-turn accumulation, and sensitive-attribute exposure. The agent is the vehicle; bias is the subject.
 
 > **Status:** ✅ Complete — all three exposure conditions run against GPT-5-4 (Azure). 3,000 qualification-matched decisions in Condition A, plus 1,440 each in B and C.
 
@@ -10,7 +12,7 @@ Use-case-specific fairness testing of an **AI recruiting agent** — the closest
 
 ## Results — Condition A (names only), GPT-5-4 (Azure)
 
-![Agentic hiring fairness audit](images/nb08_hiring_fairness.png)
+![Agentic hiring fairness audit](images/nb04b_hiring_fairness.png)
 
 **Run:** 25 of 25 screening sessions completed · 3,000 candidate-decisions · 208 advanced (6.9% overall selection rate) · 120 applicants per screen drawn from a matched-pair corpus.
 
@@ -94,9 +96,9 @@ The first draft of this track corrected only *within* each two-group table — o
 
 A real automated employment decision tool (AEDT) screens a **pool** and advances a shortlist. [NYC Local Law 144](https://www.nycbiasaudit.com/blog/how-to-comply-with-the-nyc-bias-audit-law) requires an annual independent bias audit reporting, per demographic group, the **selection rate** and the **impact ratio** (group rate ÷ highest group's rate), with **< 0.80** indicating adverse impact under the EEOC four-fifths rule.
 
-**NB04's design structurally cannot produce that number** — isolated binary decisions have no pool, so no selection rate. NB08 does.
+**NB04's design structurally cannot produce that number** — isolated binary decisions have no pool, so no selection rate. NB04b does.
 
-| | NB04 | NB08 |
+| | NB04 (benchmark) | NB04b (use case) |
 |---|---|---|
 | Target | foundation LLM | **tool-using agent** in a mock ATS |
 | Unit of analysis | one candidate, isolated | **pool of 40 → shortlist top-N** |
@@ -104,7 +106,7 @@ A real automated employment decision tool (AEDT) screens a **pool** and advances
 | Headline metric | flip rate · parity gap | **LL144 impact ratio + significance test** |
 | Extra surfaces | — | retrieval rank · triage attention · multi-turn drift |
 
-Both are kept: NB04 remains the fast generic model-level baseline; NB08 is the deployment-shaped audit.
+Both are kept: NB04 remains the fast generic model-level baseline; NB04b is the deployment-shaped audit.
 
 ---
 
@@ -245,7 +247,7 @@ evaluate/
   hiring_metrics.py    # selection & scoring rates, impact ratio, Wilson CI, Fisher+Holm,
                        # power analysis, position/validity checks, drift
   hiring_executive.py  # executive HTML report (leads with power + confirmed-vs-noise)
-notebooks/08_agentic_hiring_fairness.ipynb   # Steps 0–9
+notebooks/04b_hiring_fairness_audit.ipynb    # Parts 1–5, Steps 0–11
 ```
 
 ---
