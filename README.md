@@ -67,7 +67,7 @@ Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** no
 | 💉 Prompt Injection | [03 · Prompt Injection](#-prompt-injection-notebook-03) | ✅ | injection via a real content channel | 📋 planned |
 | ⚖️ Bias & Fairness | [04 · Bias & Fairness](#️-bias--fairness-notebook-04) | ✅ | **[04b · Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b)** | ✅ |
 | 🧩 NLI Robustness | [05 · NLI Robustness](#-nli-robustness-notebook-05) | ✅ | — *benchmark-shaped* | |
-| 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | customer-support RAG corpus | 🔜 next |
+| 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | **[06b · RAG Data Leakage](#-rag-data-leakage-notebook-06b)** | 🛠️ |
 | 🤖 Agentic Tool Attacks | [07 · Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ | *partially covered by 04b* | 📋 planned |
 
 Two areas are deliberately left unpaired: NB01 and NB05 measure properties of the model itself, and wrapping them in a scenario would add ceremony without changing the finding. **Use cases are built where the deployment introduces risk the benchmark cannot see** — not for symmetry.
@@ -75,7 +75,7 @@ Two areas are deliberately left unpaired: NB01 and NB05 measure properties of th
 | Notebook | Full write-up (results · methodology · regulatory mapping) |
 |---|---|
 | [01](notebooks/01_adversarial_nlp_demo.ipynb) · [02](notebooks/02_jailbreaking_demo.ipynb) · [03](notebooks/03_prompt_injection.ipynb) · [04](notebooks/04_fairness_counterfactual.ipynb) | [docs/01](docs/01_adversarial_nlp.md) · [docs/02](docs/02_jailbreaking.md) · [docs/03](docs/03_prompt_injection.md) · [docs/04](docs/04_fairness.md) |
-| [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
+| [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [06b](notebooks/06b_rag_data_leakage.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/06b](docs/06b_rag_data_leakage.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
@@ -94,13 +94,14 @@ llm_red_teaming/
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE               [✅]
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
 │   ├── hiring/                 # 04b use case: matched-pair corpus + mock ATS agent   [✅]
+│   ├── rag/                    # 06b use case: access-controlled corpus + vector index  [🛠️]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
 ├── targets/                    # Pluggable model connectors — OpenAI-compatible, Azure, ApplicationTarget
 ├── evaluate/                   # Metrics & reporting — ASR, risk score, regulatory mapping, executive reports
 ├── eval_datasets/               # Cached evaluation datasets (SST-2, JailbreakBench, HarmBench, BBQ, NLI, …)
-├── notebooks/                  # 7 benchmark notebooks + 1 use case (04b) — see Workstreams
+├── notebooks/                  # 7 benchmark notebooks + 2 use cases (04b, 06b)
 ├── docs/                       # Per-notebook results & deep dives + roadmap/methodology
 │
 ├── configs/                    # Experiment configuration files
@@ -267,11 +268,40 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 
 ---
 
+## 🔐 RAG Data Leakage (Notebook 06b)
+
+`🛠️ Built & validated — model tracks run pending` · *use case — the deployment-shaped half of the [data red-teaming](#-data-red-teaming-notebook-06) pair*
+
+**A bare model has no documents to leak.** Retrieval creates the entire attack surface, which makes this the clearest case in the toolkit for why use-case testing is not optional — no amount of model-level benchmarking reaches the risk, because the risk is not in the model.
+
+**What it tests:** an internal knowledge assistant over **600 real Enron documents** carrying a synthetic clearance overlay (`PUBLIC` → `RESTRICTED`) and four user roles. Because entitlement is known for every (role, document) pair, a leak is a *fact* — every restricted document carries a planted canary, so detection is exact-match rather than a judgement call.
+
+**The experiment:** everything held constant except how access control is wired into retrieval.
+
+![RAG access-control audit](docs/images/nb06b_rag_leakage.png)
+
+| Architecture | Leak rate | Usable context | |
+|---|---:|---:|---|
+| `no_filter` — clearance ignored | **73.96%** | 5.00 / 5 | 🔴 naive build |
+| `post_filter` — retrieve, then drop | 0% | **2.99 / 5** | 🟠 the *common* build |
+| `pre_filter` — restrict before search | 0% | 5.00 / 5 | 🟢 correct build |
+
+**The model never changed.** Same corpus, same questions, same weights — the architecture alone decides whether a user receives documents they may not read (p < 1e-6, Holm-corrected).
+
+**And the finding no leak metric would show you:** `post_filter` leaks nothing but **discards 40% of the retrieved context**. Restricted documents occupy top-k slots and are then thrown away, so the user silently gets three documents where they asked for five. Answer quality degrades and it presents as a model defect.
+
+Leakage is always reported beside **utility retention** — an assistant that refuses everything scores a perfect 0% leak rate and is worthless. A refusing mock is caught by exactly that pairing.
+
+> **Corpus poisoning runs against the *correct* pipeline.** The poisoned document sits at a tier every user may read, so access control is no defence at all. The two are orthogonal, and a team that got access control right may reasonably believe otherwise.
+
+📄 [Design, validation gates & regulatory mapping →](docs/06b_rag_data_leakage.md)  ·  [Open notebook →](notebooks/06b_rag_data_leakage.ipynb)
+
+---
+
 ### 🔜 Next use cases
 
 | Pairs with | Scenario | What the benchmark cannot see |
 |---|---|---|
-| [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | a customer-support assistant over a real document corpus | retrieval pulling privileged documents into context; leakage that only exists because the app has a knowledge base |
 | [03 · Prompt Injection](#-prompt-injection-notebook-03) | injection arriving through a genuine content channel (email, document, web page) | whether an injected instruction actually reaches a tool call, rather than whether the model can be talked into one |
 | [02 · Jailbreaking](#-jailbreaking-notebook-02) | a domain assistant with a production system prompt and guardrails | the *delta* — what the deployment's own defences catch that the bare model does not |
 
