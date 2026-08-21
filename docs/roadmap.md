@@ -6,6 +6,8 @@ Detailed planning tables for what's next. Everything **implemented** is document
 
 Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next milestone · 📋 Planned · 🔭 Research horizon
 
+**Two tracks.** Every risk area has a *benchmark* notebook (standard datasets, bare model) and, where the deployment shape changes the answer, a *use-case* notebook (the same risk inside a real agent, with its tools, retrieval and guardrails). Both run on the same targets, judges, metrics and statistical discipline — only the harness differs. See the [README workstreams table](../README.md#-workstreams) for current pairings.
+
 ---
 
 ## Future Attack Library — Tier 2 (Medium Priority)

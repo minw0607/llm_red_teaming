@@ -34,7 +34,23 @@ Adversarial ML attacks span the whole pipeline — training data, the model, its
 
 ![AI red teaming attack surface](docs/images/attack_surface.png)
 
-> **Scope — model-level by default.** The notebooks probe the **model** (plus the vendor's platform content filter), which is the right unit for *model assurance* and a conservative upper bound on risk. To test a **deployed application** — with its own system prompt, guardrails, retrieval, and tools — point the harness at the app via `ApplicationTarget` and measure what the guardrails catch (the *delta*). See [model-level vs application-level testing](docs/application_testing.md).
+### Our approach — two tracks, one methodology
+
+"Is this model safe?" and "is this *deployment* safe?" are different questions, and answering only one of them produces a misleading assurance picture. So every risk area is tested twice.
+
+| | 🧪 **Benchmark testing** | 🎯 **Use-case testing** |
+|---|---|---|
+| **Asks** | Is the model itself robust? | Does the risk survive into a real deployment? |
+| **Target** | the bare model + the vendor's content filter | an agent with its tools, retrieval, system prompt and guardrails |
+| **Data** | standard public datasets (SST-2, ANLI, BBQ, JailbreakBench, HarmBench…) | purpose-built corpora shaped to one scenario |
+| **Strength** | comparable across models and over time; a conservative upper bound on risk | measures what actually reaches a decision, including risk the model never sees |
+| **Blind spot** | misses everything the deployment adds — retrieval, tool access, orchestration | not portable; one scenario proves little about the next |
+
+**Why both are load-bearing.** [Notebook 04b](#️-hiring-fairness-audit-notebook-04b) is the argument in miniature: the model's own hiring decisions were statistically fair, but the embedding retriever feeding it ranked female-named candidates ~13 positions lower on identical résumés. A benchmark against the model would have returned a clean pass. The risk lived in a component that never reasons and never decides — and it is squarely in scope under California's ADS rules, which reach any tool that *ranks* candidates.
+
+**The methodology does not change between tracks.** Both run on the same `targets/` connectors, the same `judges/`, the same `evaluate/` metrics, and the same statistical discipline — significance testing, multiple-comparison correction, and an explicit detection floor so a small clean run is never mistaken for a pass. Only the harness around them differs. That is what makes the two tracks comparable rather than two separate products.
+
+> **Testing a deployed application.** Point the harness at the app via `ApplicationTarget` and measure what its guardrails catch — the *delta* against the model-level baseline. See [model-level vs application-level testing](docs/application_testing.md).
 
 📐 **Methodology:** [Industry alignment](docs/industry_alignment.md) · [Dataset strategy](docs/dataset_strategy.md) · [Roadmap](docs/roadmap.md) — future attacks, datasets & testing strategies
 
@@ -42,20 +58,24 @@ Adversarial ML attacks span the whole pipeline — training data, the model, its
 
 ## 🧭 Workstreams
 
-Each workstream is a code-light demo notebook backed by reusable modules. Status, notebook, and full write-up (results, methodology, regulatory mapping) for each:
+Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** notebook where the deployment shape changes the answer. Both halves of a pair link to each other.
 
-| # | Workstream | Kind | Status | Notebook | Full Results & Design |
-|---|---|:---:|:---:|---|---|
-| 01 | 🧬 [Adversarial NLP](#-adversarial-nlp-notebook-01) | benchmark | ✅ Complete | [notebook](notebooks/01_adversarial_nlp_demo.ipynb) | [docs/01](docs/01_adversarial_nlp.md) |
-| 02 | 🔓 [Jailbreaking](#-jailbreaking-notebook-02) | benchmark | ✅ Complete | [notebook](notebooks/02_jailbreaking_demo.ipynb) | [docs/02](docs/02_jailbreaking.md) |
-| 03 | 💉 [Prompt Injection](#-prompt-injection-notebook-03) | benchmark | ✅ Complete | [notebook](notebooks/03_prompt_injection.ipynb) | [docs/03](docs/03_prompt_injection.md) |
-| 04 | ⚖️ [Bias & Fairness](#️-bias--fairness-notebook-04) | benchmark | ✅ Complete | [notebook](notebooks/04_fairness_counterfactual.ipynb) | [docs/04](docs/04_fairness.md) |
-| 05 | 🧩 [NLI Robustness](#-nli-robustness-notebook-05) | benchmark | ✅ Complete | [notebook](notebooks/05_nli_robustness_demo.ipynb) | [docs/05](docs/05_nli_robustness.md) |
-| 06 | 🔐 [Data Red-Teaming](#-data-red-teaming-notebook-06) | benchmark | ✅ Complete | [notebook](notebooks/06_data_redteam_demo.ipynb) | [docs/06](docs/06_data_redteam.md) |
-| 07 | 🤖 [Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | benchmark | 🛠️ Built — run pending | [notebook](notebooks/07_agentic_tool_attacks.ipynb) | [docs/07](docs/07_agentic_tool_attacks.md) |
-| 04b | ⚖️ [Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b) | **use case** | ✅ Complete | [notebook](notebooks/04b_hiring_fairness_audit.ipynb) | [docs/04b](docs/04b_hiring_fairness_audit.md) |
+| Risk area | 🧪 Benchmark | Status | 🎯 Use case | Status |
+|---|---|:---:|---|:---:|
+| 🧬 Adversarial NLP | [01 · Adversarial NLP](#-adversarial-nlp-notebook-01) | ✅ | — *benchmark-shaped* | |
+| 🔓 Jailbreaking | [02 · Jailbreaking](#-jailbreaking-notebook-02) | ✅ | domain assistant + guardrails | 📋 planned |
+| 💉 Prompt Injection | [03 · Prompt Injection](#-prompt-injection-notebook-03) | ✅ | injection via a real content channel | 📋 planned |
+| ⚖️ Bias & Fairness | [04 · Bias & Fairness](#️-bias--fairness-notebook-04) | ✅ | **[04b · Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b)** | ✅ |
+| 🧩 NLI Robustness | [05 · NLI Robustness](#-nli-robustness-notebook-05) | ✅ | — *benchmark-shaped* | |
+| 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | customer-support RAG corpus | 🔜 next |
+| 🤖 Agentic Tool Attacks | [07 · Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ | *partially covered by 04b* | 📋 planned |
 
-**Benchmark vs use case.** A *benchmark* notebook sweeps a risk area against standard datasets and a bare model — the right unit for model assurance. A *use case* rebuilds the same risk inside a realistic deployment (an agent, its tools, its retrieval, its guardrails) and measures what actually reaches a decision. Notebook 04b is the first pair member; the benchmark it extends is 04. Use cases are added where the deployment shape changes the answer, not for every notebook.
+Two areas are deliberately left unpaired: NB01 and NB05 measure properties of the model itself, and wrapping them in a scenario would add ceremony without changing the finding. **Use cases are built where the deployment introduces risk the benchmark cannot see** — not for symmetry.
+
+| Notebook | Full write-up (results · methodology · regulatory mapping) |
+|---|---|
+| [01](notebooks/01_adversarial_nlp_demo.ipynb) · [02](notebooks/02_jailbreaking_demo.ipynb) · [03](notebooks/03_prompt_injection.ipynb) · [04](notebooks/04_fairness_counterfactual.ipynb) | [docs/01](docs/01_adversarial_nlp.md) · [docs/02](docs/02_jailbreaking.md) · [docs/03](docs/03_prompt_injection.md) · [docs/04](docs/04_fairness.md) |
+| [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
@@ -73,15 +93,15 @@ llm_red_teaming/
 │   ├── fairness/                # BBQ + counterfactual fairness probes            [✅]
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE               [✅]
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
-│   ├── hiring/                 # Matched-pair résumé corpus + mock ATS agent audit  [✅]
+│   ├── hiring/                 # 04b use case: matched-pair corpus + mock ATS agent   [✅]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
 ├── targets/                    # Pluggable model connectors — OpenAI-compatible, Azure, ApplicationTarget
 ├── evaluate/                   # Metrics & reporting — ASR, risk score, regulatory mapping, executive reports
 ├── eval_datasets/               # Cached evaluation datasets (SST-2, JailbreakBench, HarmBench, BBQ, NLI, …)
-├── notebooks/                  # The 8 demo notebooks — 7 benchmarks + 1 use case (04b)
-├── docs/                       # Per-workstream results & deep dives (see table above) + roadmap/methodology
+├── notebooks/                  # 7 benchmark notebooks + 1 use case (04b) — see Workstreams
+├── docs/                       # Per-notebook results & deep dives + roadmap/methodology
 │
 ├── configs/                    # Experiment configuration files
 ├── results/                    # Output files (gitignored)
@@ -117,6 +137,10 @@ summary = compute_attack_summary(results)
 ```
 
 ---
+
+# 🧪 Track 1 — Benchmark testing
+
+*Standard datasets against the bare model. Comparable across models and over time; a conservative upper bound on risk.*
 
 ## 🧬 Adversarial NLP (Notebook 01)
 
@@ -166,6 +190,46 @@ Unlike NB01–03, **bias is a harm, not an attack** — there's no adversary; th
 
 ---
 
+## 🧩 NLI Robustness (Notebook 05)
+
+`✅ Complete`
+
+Tests whether the model still **reasons correctly** under adversarial pressure. Natural Language Inference asks whether a hypothesis is entailed by, neutral to, or contradicts a premise — unlike NB01, the **dataset is the adversary** ([ANLI](https://arxiv.org/abs/1910.14599) items are human-crafted to fool strong models).
+
+**Headline** (GPT-5-4 via Azure, 13,298 items): clean accuracy **85.5%** vs. a **+20.8% robustness gap** on the hardest ANLI round — the model degrades gracefully, not catastrophically, but clean accuracy overstates reliability on hard reasoning. Dominant failure mode: hedging to "neutral."
+
+📄 [Full results, robustness gap, ANLI difficulty curve →](docs/05_nli_robustness.md)
+
+---
+
+## 🔐 Data Red-Teaming (Notebook 06)
+
+`✅ Complete`
+
+Targets **confidentiality** — the model as a data-leak vector — across three tracks: system-prompt/secret disclosure, memorization/PII regurgitation (incl. real Enron PII extraction), and RAG context exfiltration.
+
+**Headline** (GPT-5-4 via Azure, 61 probes): **clean across all three tracks** — 0% sensitive-leak rate, including 0/20 real Enron PII reproduced. The only flags are benign public-domain recall, correctly excluded from the headline leak rate.
+
+📄 [Full results, three tracks, industry alignment →](docs/06_data_redteam.md)
+
+---
+
+## 🤖 Agentic Tool Attacks (Notebook 07)
+
+`🛠️ Built — run pending`
+
+The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Tests whether untrusted input can move a tool-using agent to an **unsafe action** (send email, delete files, make a payment) via a ReAct loop over a safe mock sandbox, in the style of [AgentDojo](https://arxiv.org/abs/2406.13352).
+
+Harness, sandbox, 5 scenarios, metrics, and executive report are built and validated end-to-end; results are published here after a run against the assessed model.
+
+📄 [Design & methodology →](docs/07_agentic_tool_attacks.md)
+
+---
+
+# 🎯 Track 2 — Use-case testing
+
+*The same risks, rebuilt inside a realistic deployment. Measures what actually reaches a decision — including risk the model itself never sees.*
+
 ## ⚖️ Hiring Fairness Audit (Notebook 04b)
 
 `✅ Complete` · *use case — the deployment-shaped half of the [fairness](#️-bias--fairness-notebook-04) pair*
@@ -201,39 +265,15 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 
 ---
 
-## 🧩 NLI Robustness (Notebook 05)
-
-`✅ Complete`
-
-Tests whether the model still **reasons correctly** under adversarial pressure. Natural Language Inference asks whether a hypothesis is entailed by, neutral to, or contradicts a premise — unlike NB01, the **dataset is the adversary** ([ANLI](https://arxiv.org/abs/1910.14599) items are human-crafted to fool strong models).
-
-**Headline** (GPT-5-4 via Azure, 13,298 items): clean accuracy **85.5%** vs. a **+20.8% robustness gap** on the hardest ANLI round — the model degrades gracefully, not catastrophically, but clean accuracy overstates reliability on hard reasoning. Dominant failure mode: hedging to "neutral."
-
-📄 [Full results, robustness gap, ANLI difficulty curve →](docs/05_nli_robustness.md)
-
 ---
 
-## 🔐 Data Red-Teaming (Notebook 06)
+### 🔜 Next use cases
 
-`✅ Complete`
-
-Targets **confidentiality** — the model as a data-leak vector — across three tracks: system-prompt/secret disclosure, memorization/PII regurgitation (incl. real Enron PII extraction), and RAG context exfiltration.
-
-**Headline** (GPT-5-4 via Azure, 61 probes): **clean across all three tracks** — 0% sensitive-leak rate, including 0/20 real Enron PII reproduced. The only flags are benign public-domain recall, correctly excluded from the headline leak rate.
-
-📄 [Full results, three tracks, industry alignment →](docs/06_data_redteam.md)
-
----
-
-## 🤖 Agentic Tool Attacks (Notebook 07)
-
-`🛠️ Built — run pending`
-
-The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Tests whether untrusted input can move a tool-using agent to an **unsafe action** (send email, delete files, make a payment) via a ReAct loop over a safe mock sandbox, in the style of [AgentDojo](https://arxiv.org/abs/2406.13352).
-
-Harness, sandbox, 5 scenarios, metrics, and executive report are built and validated end-to-end; results are published here after a run against the assessed model.
-
-📄 [Design & methodology →](docs/07_agentic_tool_attacks.md)
+| Pairs with | Scenario | What the benchmark cannot see |
+|---|---|---|
+| [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | a customer-support assistant over a real document corpus | retrieval pulling privileged documents into context; leakage that only exists because the app has a knowledge base |
+| [03 · Prompt Injection](#-prompt-injection-notebook-03) | injection arriving through a genuine content channel (email, document, web page) | whether an injected instruction actually reaches a tool call, rather than whether the model can be talked into one |
+| [02 · Jailbreaking](#-jailbreaking-notebook-02) | a domain assistant with a production system prompt and guardrails | the *delta* — what the deployment's own defences catch that the bare model does not |
 
 ---
 
