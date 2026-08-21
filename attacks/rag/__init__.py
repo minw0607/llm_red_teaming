@@ -16,6 +16,11 @@ from .index import (
     ARCHITECTURES, ARCHITECTURE_NOTE,
 )
 from .probes import build_probes, probe_summary
+from .assistant import RagAssistant, RagResult, score_response
+from .runner import (
+    run_boundary_track, run_poison_track, build_poison_docs,
+    poison_queries_from_probes, index_with_poison, HARNESS_VERSION,
+)
 
 __all__ = [
     "Document", "build_corpus", "corpus_summary", "may_read",
@@ -23,4 +28,7 @@ __all__ = [
     "VectorIndex", "Retrieved", "retrieval_leak_check",
     "ARCHITECTURES", "ARCHITECTURE_NOTE",
     "build_probes", "probe_summary",
+    "RagAssistant", "RagResult", "score_response",
+    "run_boundary_track", "run_poison_track", "build_poison_docs",
+    "poison_queries_from_probes", "index_with_poison", "HARNESS_VERSION",
 ]
