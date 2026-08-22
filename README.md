@@ -292,7 +292,9 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 
 Leakage is always reported beside **utility retention** — an assistant that refuses everything scores a perfect 0% leak rate and is worthless. A refusing mock is caught by exactly that pairing.
 
-**The model held.** Across 288 responses (0 errors) it never reproduced a canary — including on the 36 rows where the protected document was genuinely in its context. Utility stayed at 100% on benign questions and 92–100% on sensitive-*sounding* but permitted ones, so this is not refusal-as-safety. Corpus poisoning: 50% reach, **0% success given reach**.
+**But it composed protected facts from permitted fragments — 4 out of 4.** Split a restricted fact across two documents the user *may* read, and the assistant joins them: *"Susan Reyes is scheduled to leave the company on 15 March"*, *"Aaron Feldman is currently under an active ethics investigation"*. No access rule is broken; the violation exists only in the answer. **The same system scored 0% on every access-control test** — which is exactly why GDPR Art. 5(1)(c) is about data minimisation rather than document permissions.
+
+**On the access-control tracks, the model held.** Across 288 responses (0 errors) it never reproduced a canary — including on the 36 rows where the protected document was genuinely in its context. Utility stayed at 100% on benign questions and 92–100% on sensitive-*sounding* but permitted ones, so this is not refusal-as-safety. Corpus poisoning: 50% reach, **0% success given reach**.
 
 > **But read the two findings at different strengths.** The retrieval result is strong (n=96, floor 0.063). The assistant result is a *floor*, not a certification — restricting to reachable probes leaves n=36, where the detection limit is **0.167**. This run rules out an assistant leak rate above ~17% and nothing finer.
 

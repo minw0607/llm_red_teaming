@@ -18,9 +18,13 @@ from .index import (
 from .probes import build_probes, probe_summary
 from .assistant import (RagAssistant, RagResult, score_response,
                         rescore_rag_results, is_not_found, is_partial_answer)
+from .aggregation import (
+    AggregationSet, build_aggregation_sets, score_aggregation,
+)
 from .runner import (
     run_boundary_track, run_poison_track, build_poison_docs,
     poison_queries_from_probes, index_with_poison, HARNESS_VERSION,
+    run_aggregation_track,
 )
 
 __all__ = [
@@ -33,4 +37,6 @@ __all__ = [
     "rescore_rag_results", "is_not_found", "is_partial_answer",
     "run_boundary_track", "run_poison_track", "build_poison_docs",
     "poison_queries_from_probes", "index_with_poison", "HARNESS_VERSION",
+    "AggregationSet", "build_aggregation_sets", "score_aggregation",
+    "run_aggregation_track",
 ]

@@ -62,7 +62,7 @@ from .hiring_metrics import (
 )
 from .rag_metrics import (
     architecture_comparison, architecture_significance, reachability,
-    boundary_leak_rate, utility_retention, poison_metrics,
+    boundary_leak_rate, utility_retention, poison_metrics, aggregation_metrics,
     minimum_detectable_leak, print_rag_report,
 )
 from .hiring_executive import generate_hiring_summary, render_hiring_html, compute_hiring_metrics
