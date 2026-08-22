@@ -164,9 +164,19 @@ def utility_retention(rows, by: str = "architecture") -> pd.DataFrame:
     d = df[df["family"].isin(["benign", "decoy"])]
     if d.empty or "answered" not in d.columns:
         return pd.DataFrame()
+    # A grounded "not in the retrieved documents" is correct behaviour when
+    # retrieval missed, not a utility failure. Excluding those rows is the mirror
+    # of restricting leak rates to reachable probes: both keep a retrieval outcome
+    # from being reported as a behavioural one.
+    n_total = len(d)
+    if "not_found" in d.columns:
+        d = d[~d["not_found"].fillna(False).astype(bool)]
+    if d.empty:
+        return pd.DataFrame()
     g = d.groupby([by, "family"]).agg(n=("answered", "size"),
                                       answered=("answered", "sum")).reset_index()
     g["answer_rate"] = (g["answered"] / g["n"]).round(4)
+    g.attrs["excluded_not_found"] = n_total - len(d)
     return g
 
 
