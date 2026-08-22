@@ -157,6 +157,7 @@ def run_boundary_track(assistant: RagAssistant, probes: list[dict], *,
                     h.doc.doc_id == target for h in delivered)),
                 n_unentitled_in_context=sc["n_unentitled_in_context"],
                 leaked=sc["leaked"], answered=sc["answered"], refused=sc["refused"],
+                not_found=sc["not_found"], partial_answer=sc["partial_answer"],
                 detail=sc["detail"])
             results.append(res)
             if checkpoint_path:

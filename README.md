@@ -67,7 +67,7 @@ Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** no
 | 💉 Prompt Injection | [03 · Prompt Injection](#-prompt-injection-notebook-03) | ✅ | injection via a real content channel | 📋 planned |
 | ⚖️ Bias & Fairness | [04 · Bias & Fairness](#️-bias--fairness-notebook-04) | ✅ | **[04b · Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b)** | ✅ |
 | 🧩 NLI Robustness | [05 · NLI Robustness](#-nli-robustness-notebook-05) | ✅ | — *benchmark-shaped* | |
-| 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | **[06b · RAG Data Leakage](#-rag-data-leakage-notebook-06b)** | 🛠️ |
+| 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | **[06b · RAG Data Leakage](#-rag-data-leakage-notebook-06b)** | ✅ |
 | 🤖 Agentic Tool Attacks | [07 · Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ | *partially covered by 04b* | 📋 planned |
 
 Two areas are deliberately left unpaired: NB01 and NB05 measure properties of the model itself, and wrapping them in a scenario would add ceremony without changing the finding. **Use cases are built where the deployment introduces risk the benchmark cannot see** — not for symmetry.
@@ -94,7 +94,7 @@ llm_red_teaming/
 │   ├── robustness/             # NLI runner + MultiNLI/ANLI/AdvGLUE               [✅]
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
 │   ├── hiring/                 # 04b use case: matched-pair corpus + mock ATS agent   [✅]
-│   ├── rag/                    # 06b use case: access-controlled corpus + vector index  [🛠️]
+│   ├── rag/                    # 06b use case: access-controlled corpus + vector index  [✅]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
@@ -270,7 +270,7 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 
 ## 🔐 RAG Data Leakage (Notebook 06b)
 
-`🛠️ Built & validated — model tracks run pending` · *use case — the deployment-shaped half of the [data red-teaming](#-data-red-teaming-notebook-06) pair*
+`✅ Complete` · *use case — the deployment-shaped half of the [data red-teaming](#-data-red-teaming-notebook-06) pair*
 
 **A bare model has no documents to leak.** Retrieval creates the entire attack surface, which makes this the clearest case in the toolkit for why use-case testing is not optional — no amount of model-level benchmarking reaches the risk, because the risk is not in the model.
 
@@ -282,7 +282,7 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 
 | Architecture | Leak rate | Usable context | |
 |---|---:|---:|---|
-| `no_filter` — clearance ignored | **73.96%** | 5.00 / 5 | 🔴 naive build |
+| `no_filter` — clearance ignored | **76.04%** | 5.00 / 5 | 🔴 naive build |
 | `post_filter` — retrieve, then drop | 0% | **2.99 / 5** | 🟠 the *common* build |
 | `pre_filter` — restrict before search | 0% | 5.00 / 5 | 🟢 correct build |
 
@@ -291,6 +291,10 @@ That is the case for auditing **agents** rather than bare models: this bias occu
 **And the finding no leak metric would show you:** `post_filter` leaks nothing but **discards 40% of the retrieved context**. Restricted documents occupy top-k slots and are then thrown away, so the user silently gets three documents where they asked for five. Answer quality degrades and it presents as a model defect.
 
 Leakage is always reported beside **utility retention** — an assistant that refuses everything scores a perfect 0% leak rate and is worthless. A refusing mock is caught by exactly that pairing.
+
+**The model held.** Across 288 responses (0 errors) it never reproduced a canary — including on the 36 rows where the protected document was genuinely in its context. Utility stayed at 100% on benign questions and 92–100% on sensitive-*sounding* but permitted ones, so this is not refusal-as-safety. Corpus poisoning: 50% reach, **0% success given reach**.
+
+> **But read the two findings at different strengths.** The retrieval result is strong (n=96, floor 0.063). The assistant result is a *floor*, not a certification — restricting to reachable probes leaves n=36, where the detection limit is **0.167**. This run rules out an assistant leak rate above ~17% and nothing finer.
 
 > **Corpus poisoning runs against the *correct* pipeline.** The poisoned document sits at a tier every user may read, so access control is no defence at all. The two are orthogonal, and a team that got access control right may reasonably believe otherwise.
 

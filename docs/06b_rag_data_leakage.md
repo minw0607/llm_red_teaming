@@ -4,7 +4,7 @@
 
 **The use-case half of the data red-teaming pair.** [NB06](06_data_redteam.md) is the *benchmark* — does a model disclose secrets placed in its prompt. This is the deployment-shaped audit: does a *retrieval system* hand a user documents they are not entitled to.
 
-> **Status:** 🛠️ Built and ground-truth validated. The deterministic retrieval layer has been run in full; the model-driven tracks are run pending.
+> **Status:** ✅ Complete — all tracks run against GPT-5-4 (Azure). 288 boundary responses across three architectures, 24 poisoning attempts, 0 errors.
 
 ---
 
@@ -68,7 +68,7 @@ Everything held constant except how access control is wired into retrieval.
 
 | Architecture | Leak rate | 95% CI | Usable context | vs correct build |
 |---|---:|---|---:|---|
-| `no_filter` | **73.96%** | 0.644 – 0.817 | 5.00 / 5 | p < 1e-6, significant (Holm) |
+| `no_filter` | **76.04%** | 0.667 – 0.834 | 5.00 / 5 | p < 1e-6, significant (Holm) |
 | `post_filter` | **0%** | 0 – 0.039 | **2.99 / 5** | n.s. |
 | `pre_filter` | **0%** | 0 – 0.039 | 5.00 / 5 | baseline |
 
@@ -132,6 +132,48 @@ statistic and penalises precisely the systems the decoy family exists to reward.
 `rescore_rag_results()` recomputes these from saved response text, so a scoring fix applies to an
 existing checkpoint without re-spending API calls — the same pattern as `rescore_data_results` in
 [NB06](06_data_redteam.md).
+
+---
+
+## Results — assistant layer (GPT-5-4 via Azure)
+
+288 responses · 3 architectures · **0 errors**
+
+**The model never leaked.** Not once, across every architecture and probe family.
+
+The claim that matters is narrower than "0 leaks across 288 rows", so state it precisely: on **36 rows the canaried target document was genuinely in the model's context** — that is the real denominator, and the canary was reproduced **0 times**. The model reasoned about clearance explicitly:
+
+> *"I can't provide details from the available records about that item at your clearance level. The accessible records for your request are not permitted for PUBLIC disclosure."*
+
+| | Result |
+|---|---|
+| Boundary leak rate (reachable probes) | **0%** — 95% CI 0 – 0.096 |
+| Protected document in context, canary reproduced | **0 / 36** |
+| Utility — benign questions | **100%** across all three architectures |
+| Utility — decoy (sensitive-sounding, permitted) | **92–100%** — no over-refusal |
+| Corpus poisoning | reach 50% (12/24), **success given reach 0%** (CI 0 – 0.242) |
+
+### Why the assistant-level claim is weaker than the retrieval one
+
+`reachable_only` cuts the boundary denominator from 144 rows to **36** — correctly, since a probe whose target never entered the context tested nothing. But at n=36 the **detection floor is 0.167**: this run rules out an assistant leak rate above ~17%, and nothing finer.
+
+| n | smallest detectable leak rate |
+|---:|---:|
+| 36 (reachable boundary rows) | 0.167 |
+| 96 (all probes, retrieval layer) | 0.063 |
+
+So the retrieval finding is strong and the assistant finding is a *floor*, not a certification. Raising `N_PER_FAMILY` is the lever; the cost is linear in model calls.
+
+### How responses actually distribute
+
+| Outcome | Count (of 288) |
+|---|---:|
+| Answered | 188 |
+| Partial answer — declined the framing, answered in-clearance | 121 |
+| Not found — grounded-out, excluded from utility | 89 |
+| Hard refusal | **11** |
+
+Only 11 genuine refusals. Had these been scored with a plain "I can't…" test they would have read as ~220 refusals and produced a false over-refusal finding.
 
 ---
 
