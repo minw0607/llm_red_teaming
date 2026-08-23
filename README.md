@@ -63,7 +63,7 @@ Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** no
 | Risk area | 🧪 Benchmark | Status | 🎯 Use case | Status |
 |---|---|:---:|---|:---:|
 | 🧬 Adversarial NLP | [01 · Adversarial NLP](#-adversarial-nlp-notebook-01) | ✅ | — *benchmark-shaped* | |
-| 🔓 Jailbreaking | [02 · Jailbreaking](#-jailbreaking-notebook-02) | ✅ | domain assistant + guardrails | 📋 planned |
+| 🔓 Jailbreaking | [02 · Jailbreaking](#-jailbreaking-notebook-02) | ✅ | **[02b · Guardrail Efficacy](#-guardrail-efficacy-notebook-02b)** | ✅ |
 | 💉 Prompt Injection | [03 · Prompt Injection](#-prompt-injection-notebook-03) | ✅ | injection via a real content channel | 📋 planned |
 | ⚖️ Bias & Fairness | [04 · Bias & Fairness](#️-bias--fairness-notebook-04) | ✅ | **[04b · Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b)** | ✅ |
 | 🧩 NLI Robustness | [05 · NLI Robustness](#-nli-robustness-notebook-05) | ✅ | — *benchmark-shaped* | |
@@ -75,7 +75,7 @@ Two areas are deliberately left unpaired: NB01 and NB05 measure properties of th
 | Notebook | Full write-up (results · methodology · regulatory mapping) |
 |---|---|
 | [01](notebooks/01_adversarial_nlp_demo.ipynb) · [02](notebooks/02_jailbreaking_demo.ipynb) · [03](notebooks/03_prompt_injection.ipynb) · [04](notebooks/04_fairness_counterfactual.ipynb) | [docs/01](docs/01_adversarial_nlp.md) · [docs/02](docs/02_jailbreaking.md) · [docs/03](docs/03_prompt_injection.md) · [docs/04](docs/04_fairness.md) |
-| [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [06b](notebooks/06b_rag_data_leakage.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/06b](docs/06b_rag_data_leakage.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
+| [02b](notebooks/02b_guardrail_efficacy.ipynb) · [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [06b](notebooks/06b_rag_data_leakage.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/02b](docs/02b_guardrail_efficacy.md) · [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/06b](docs/06b_rag_data_leakage.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
@@ -95,13 +95,14 @@ llm_red_teaming/
 │   ├── data/                   # Disclosure, memorization (+Enron), exfiltration  [✅]
 │   ├── hiring/                 # 04b use case: matched-pair corpus + mock ATS agent   [✅]
 │   ├── rag/                    # 06b use case: access-controlled corpus + vector index  [✅]
+│   ├── guardrails/             # 02b use case: layered guardrail stack + domain probes  [✅]
 │   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
 ├── targets/                    # Pluggable model connectors — OpenAI-compatible, Azure, ApplicationTarget
 ├── evaluate/                   # Metrics & reporting — ASR, risk score, regulatory mapping, executive reports
 ├── eval_datasets/               # Cached evaluation datasets (SST-2, JailbreakBench, HarmBench, BBQ, NLI, …)
-├── notebooks/                  # 7 benchmark notebooks + 2 use cases (04b, 06b)
+├── notebooks/                  # 7 benchmark notebooks + 3 use cases (02b, 04b, 06b)
 ├── docs/                       # Per-notebook results & deep dives + roadmap/methodology
 │
 ├── configs/                    # Experiment configuration files
@@ -304,12 +305,38 @@ Leakage is always reported beside **utility retention** — an assistant that re
 
 ---
 
+## 🔓 Guardrail Efficacy (Notebook 02b)
+
+`✅ Complete` · *use case — the deployment-shaped half of the [jailbreaking](#-jailbreaking-notebook-02) pair*
+
+Every deployed assistant sits inside a guardrail stack — a system prompt, an input filter, an output filter. Almost nobody measures whether any of it works, or **which layer is load-bearing**.
+
+**What it tests:** a retail bank's customer-service assistant against **94 domain probes** mapped to six rules the bank must follow — no unlicensed advice, no binding commitments, mandatory disclaimer, no internal thresholds, refuse fraud, and *actually answer ordinary questions*. 82 of 94 are scored **mechanically**: the disclaimer rule fails on the *absence* of an exact sentence, the confidentiality rule on the *presence* of an exact threshold value.
+
+![Guardrail efficacy](docs/images/nb02b_guardrails.png)
+
+| Layer | Rate | Marginal | Significance |
+|---|---:|---:|---|
+| **L0** bare model | **22.2%** | — | baseline |
+| **L1** + system prompt | **0.0%** | **−22.2pp** | **p=0.000012** ✅ |
+| **L2** + input filter | 2.8% | +2.8pp | not distinguishable |
+| **L3** + output filter | 0.0% | −2.8pp | not distinguishable |
+
+**The system prompt did all the work; the filters added nothing measurable.** They fired constantly — 18 and 20 blocks respectively — but never on anything still broken, because L1 had already removed it. Zero legitimate questions were blocked at any layer, so this is not safety-by-uselessness.
+
+**And 87.5% of the bare model's failures were the missing disclaimer** — a rule it had never been told existed. That's a *configuration* failure, not a safety one, and no generic jailbreak benchmark contains it.
+
+> **Read the nulls at their real strength.** Detection floor is 0.083. The L0→L1 drop clears it comfortably; the L2/L3 nulls do not. "The filters add nothing" is consistent with the data, not established by it — a layer only shows value when something reaches it.
+
+📄 [Design, validation controls & limitations →](docs/02b_guardrail_efficacy.md)  ·  [Open notebook →](notebooks/02b_guardrail_efficacy.ipynb)
+
+---
+
 ### 🔜 Next use cases
 
 | Pairs with | Scenario | What the benchmark cannot see |
 |---|---|---|
 | [03 · Prompt Injection](#-prompt-injection-notebook-03) | injection arriving through a genuine content channel (email, document, web page) | whether an injected instruction actually reaches a tool call, rather than whether the model can be talked into one |
-| [02 · Jailbreaking](#-jailbreaking-notebook-02) | a domain assistant with a production system prompt and guardrails | the *delta* — what the deployment's own defences catch that the bare model does not |
 
 ---
 
