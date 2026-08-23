@@ -32,7 +32,7 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 |:---:|---|---|---|---|---|---|
 | 🔭 | **RAG / Vector Store Poisoning** | Infrastructure | Inject adversarial documents into a retrieval corpus to influence LLM responses via indirect context | AML.T0054 · AML.T0020 | Information Security · Value Chain | LLM08 Vector & Embedding Weaknesses |
 | 🔭 | **Multi-Turn Context Manipulation** | Prompt | Build up a false context or persona over many dialogue turns to gradually shift model behaviour | AML.T0054 | Information Security · Human-AI Configuration | LLM01 Prompt Injection |
-| 📋 | **Tool / Function Call Hijacking** | Prompt | Craft adversarial input that redirects an LLM agent's tool calls to unintended targets or actions *(NB07)* | AML.T0053 · AML.T0054 | Information Security | LLM06 Excessive Agency |
+| ✅ | **Tool / Function Call Hijacking** | Prompt | Craft adversarial input that redirects an LLM agent's tool calls to unintended targets or actions *(NB07)* | AML.T0053 · AML.T0054 | Information Security | LLM06 Excessive Agency |
 | 🔭 | **Backdoor / Trojan Trigger** | Model-level | Insert a hidden trigger phrase during fine-tuning that causes targeted misclassification at inference | AML.T0020 · AML.T0043 | Information Security · Data Provenance | LLM04 Data & Model Poisoning |
 | 🔭 | **Membership Inference** | Privacy | Query the model systematically to determine whether specific examples were in its training data | AML.T0040 · AML.T0031 | Data Privacy | LLM02 Sensitive Information Disclosure |
 | 🔭 | **Model Extraction / Stealing** | Privacy | Reconstruct a functional surrogate of the target model via repeated black-box queries | AML.T0031 · AML.T0040 | Value Chain and Component Integration | LLM02 Sensitive Information Disclosure |
@@ -77,7 +77,7 @@ Status legend: ✅ Implemented · 🛠️ Built (live run pending) · 🔜 Next 
 | 📋 | **Logical Negation Robustness** | Does the model correctly track negation under paraphrase? | MultiNLI · custom | Negation flip rate |
 | 🔭 | **Multi-Turn Manipulation** | Can a model's behaviour be shifted over successive turns via context accumulation? | MT-Bench · custom | Behaviour drift score |
 | 🔭 | **Confidence / Calibration Shift** | Does an adversarial attack inflate the model's confidence in a wrong answer? | SST-2 · AdvGLUE | ECE · confidence delta |
-| 📋 | **Tool Call Hijacking Rate** | Can adversarial input redirect an agent's function calls? *(NB07)* | AgentDojo-style tasks | Unsafe-action rate |
+| ✅ | **Tool Call Hijacking Rate** | Can adversarial input redirect an agent's function calls? *(NB07)* | AgentDojo-style tasks | Unsafe-action rate |
 | 🔜 | **Training Data Extraction** | Can repeated prompting extract PII or verbatim training text? *(NB06)* | Canaries · synthetic PII · public-text prefixes | Regurgitation rate |
 
 ---
