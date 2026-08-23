@@ -72,10 +72,10 @@ Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** no
 
 Two areas are deliberately left unpaired: NB01 and NB05 measure properties of the model itself, and wrapping them in a scenario would add ceremony without changing the finding. **Use cases are built where the deployment introduces risk the benchmark cannot see** — not for symmetry.
 
-| Notebook | Full write-up (results · methodology · regulatory mapping) |
-|---|---|
-| [01](notebooks/01_adversarial_nlp_demo.ipynb) · [02](notebooks/02_jailbreaking_demo.ipynb) · [03](notebooks/03_prompt_injection.ipynb) · [04](notebooks/04_fairness_counterfactual.ipynb) | [docs/01](docs/01_adversarial_nlp.md) · [docs/02](docs/02_jailbreaking.md) · [docs/03](docs/03_prompt_injection.md) · [docs/04](docs/04_fairness.md) |
-| [02b](notebooks/02b_guardrail_efficacy.ipynb) · [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [06b](notebooks/06b_rag_data_leakage.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [docs/02b](docs/02b_guardrail_efficacy.md) · [docs/04b](docs/04b_hiring_fairness_audit.md) · [docs/05](docs/05_nli_robustness.md) · [docs/06](docs/06_data_redteam.md) · [docs/06b](docs/06b_rag_data_leakage.md) · [docs/07](docs/07_agentic_tool_attacks.md) |
+| | Notebook | Full write-up (results · methodology · regulatory mapping) |
+|---|---|---|
+| 🧪 **Benchmark** | [01](notebooks/01_adversarial_nlp_demo.ipynb) · [02](notebooks/02_jailbreaking_demo.ipynb) · [03](notebooks/03_prompt_injection.ipynb) · [04](notebooks/04_fairness_counterfactual.ipynb) · [05](notebooks/05_nli_robustness_demo.ipynb) · [06](notebooks/06_data_redteam_demo.ipynb) · [07](notebooks/07_agentic_tool_attacks.ipynb) | [01](docs/01_adversarial_nlp.md) · [02](docs/02_jailbreaking.md) · [03](docs/03_prompt_injection.md) · [04](docs/04_fairness.md) · [05](docs/05_nli_robustness.md) · [06](docs/06_data_redteam.md) · [07](docs/07_agentic_tool_attacks.md) |
+| 🎯 **Use case** | [02b](notebooks/02b_guardrail_efficacy.ipynb) · [04b](notebooks/04b_hiring_fairness_audit.ipynb) · [06b](notebooks/06b_rag_data_leakage.ipynb) | [02b](docs/02b_guardrail_efficacy.md) · [04b](docs/04b_hiring_fairness_audit.md) · [06b](docs/06b_rag_data_leakage.md) |
 
 Notebooks are intentionally **code-light** — they import from the modules below and focus on results, visualisations, and interpretation.
 
