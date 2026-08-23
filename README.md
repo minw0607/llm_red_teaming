@@ -68,7 +68,7 @@ Seven risk areas. Each has a **benchmark** notebook, and gains a **use-case** no
 | ⚖️ Bias & Fairness | [04 · Bias & Fairness](#️-bias--fairness-notebook-04) | ✅ | **[04b · Hiring Fairness Audit](#️-hiring-fairness-audit-notebook-04b)** | ✅ |
 | 🧩 NLI Robustness | [05 · NLI Robustness](#-nli-robustness-notebook-05) | ✅ | — *benchmark-shaped* | |
 | 🔐 Data Red-Teaming | [06 · Data Red-Teaming](#-data-red-teaming-notebook-06) | ✅ | **[06b · RAG Data Leakage](#-rag-data-leakage-notebook-06b)** | ✅ |
-| 🤖 Agentic Tool Attacks | [07 · Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | 🛠️ | *partially covered by 04b* | 📋 planned |
+| 🤖 Agentic Tool Attacks | [07 · Agentic Tool Attacks](#-agentic-tool-attacks-notebook-07) | ✅ | *partially covered by 04b, 06b* | 📋 planned |
 
 Two areas are deliberately left unpaired: NB01 and NB05 measure properties of the model itself, and wrapping them in a scenario would add ceremony without changing the finding. **Use cases are built where the deployment introduces risk the benchmark cannot see** — not for symmetry.
 
@@ -96,7 +96,7 @@ llm_red_teaming/
 │   ├── hiring/                 # 04b use case: matched-pair corpus + mock ATS agent   [✅]
 │   ├── rag/                    # 06b use case: access-controlled corpus + vector index  [✅]
 │   ├── guardrails/             # 02b use case: layered guardrail stack + domain probes  [✅]
-│   └── agent/                  # Tool-using agent sandbox + attacks               [🛠️]
+│   └── agent/                  # Tool-using agent sandbox + attacks               [✅]
 │
 ├── judges/                     # Response evaluation — rule-based + BART-MNLI + LLM-as-judge
 ├── targets/                    # Pluggable model connectors — OpenAI-compatible, Azure, ApplicationTarget
@@ -218,11 +218,22 @@ Targets **confidentiality** — the model as a data-leak vector — across three
 
 ## 🤖 Agentic Tool Attacks (Notebook 07)
 
-`🛠️ Built — run pending`
+`✅ Complete`
 
-The frontier — validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks. Tests whether untrusted input can move a tool-using agent to an **unsafe action** (send email, delete files, make a payment) via a ReAct loop over a safe mock sandbox, in the style of [AgentDojo](https://arxiv.org/abs/2406.13352).
+An agent's tools split into **sources** it reads from (email, files, web pages) and **sinks** with real consequences (`send_email`, `make_payment`, `delete_file`, `http_post`). The failure has exactly one shape: *text arriving through a source causes a sink action the user never asked for*. That is OWASP's top LLM risk, because the attacker never touches your system — they send an invoice.
 
-Harness, sandbox, 5 scenarios, metrics, and executive report are built and validated end-to-end; results are published here after a run against the assessed model.
+Validated by the [OpenAI/Google/IEEE Kaggle competition](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks) on multi-step tool attacks; ReAct loop over a safe mock sandbox, in the style of [AgentDojo](https://arxiv.org/abs/2406.13352).
+
+**Headline** (GPT-5-4 via Azure, 60 attempts, 98% injection exposure): **the channel decides, not the content.** The identical exfiltration goal succeeded **7/12 (58%)** when the *user* asked for it, and **0/48** when hidden inside an email, file, invoice or web page.
+
+| Channel | n | Unsafe | Exposure |
+|---|---:|---:|---:|
+| direct — the user asks | 12 | **58.3%** | 100% |
+| indirect — planted in content | 48 | **0.0%** | 98% |
+
+The agent has effectively learned that the user channel is authoritative and content channels are not — the right instinct, and the defence that matters most.
+
+> **The indirect null is real, not vacuous.** Exposure is verified per attempt and the detection floor is 0.125, ruling out a rate above ~12.5%. An earlier version of this harness reported 0% while the poisoned email was frequently never read at all — which is why every attempt now records whether the payload actually arrived.
 
 📄 [Design & methodology →](docs/07_agentic_tool_attacks.md)
 
