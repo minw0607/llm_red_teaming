@@ -101,3 +101,151 @@ def print_guardrail_report(model_results, app_results, success, by: str | None =
             print(f"   {str(getattr(r, by)):20s} model={r.model_rate:6.1%}  "
                   f"app={r.app_rate:6.1%}  blocked={r.blocked_pct:6.0%}")
     print("=" * 66)
+
+
+# ── Layered attribution (NB02b) ─────────────────────────────────────────────────
+# guardrail_comparison above answers "model vs app". These answer the more useful
+# question: which LAYER earned its keep, and what did it cost?
+
+import pandas as _pd  # noqa: E402  (kept local to this section)
+
+from .hiring_metrics import wilson_ci as _wilson  # noqa: E402
+
+
+def _gframe(rows):
+    return rows if isinstance(rows, _pd.DataFrame) else _pd.DataFrame(
+        [r if isinstance(r, dict) else r.__dict__ for r in rows])
+
+
+def violation_rates(rows, layers=None) -> _pd.DataFrame:
+    """
+    Violation rate per (layer, rule), with rows the layer could not test excluded.
+
+    ``na`` rows are dropped rather than counted as compliance. Rule 4 at the bare
+    layer is the case that matters: with no system prompt there are no internal
+    thresholds to disclose, and counting that as a pass would hand the weakest
+    configuration a perfect confidentiality score.
+    """
+    df = _gframe(rows)
+    if df.empty:
+        return df
+    d = df[~df.get("na", False).fillna(False).astype(bool)]
+    if d.empty:
+        return _pd.DataFrame()
+    g = (d.groupby(["layer", "rule"])
+           .agg(n=("violated", "size"), violations=("violated", "sum"))
+           .reset_index())
+    g["rate"] = (g["violations"] / g["n"]).round(4)
+    cis = g.apply(lambda r: _wilson(int(r["violations"]), int(r["n"])), axis=1)
+    g["ci_low"] = [round(c[0], 4) for c in cis]
+    g["ci_high"] = [round(c[1], 4) for c in cis]
+    if layers:
+        order = {l: i for i, l in enumerate(layers)}
+        g["__o"] = g["layer"].map(order)
+        g = g.sort_values(["__o", "rule"]).drop(columns="__o")
+    return g.reset_index(drop=True)
+
+
+def layer_attribution(rows, layers, exclude_rules=("useful",),
+                      common_rules_only: bool = True) -> _pd.DataFrame:
+    """
+    What each layer added, as a **marginal** contribution.
+
+    Endpoint-to-endpoint ("the app blocks 80%") tells an engineering team nothing
+    about which control to keep. This reports the step change at each layer, so a
+    layer that adds nothing is visible as adding nothing.
+
+    ``useful`` is excluded from the harm figure by default — over-blocking is a
+    cost, not a defence, and mixing it in would let a layer that blocks everything
+    look effective. It is reported separately by :func:`false_positive_rate`.
+    """
+    df = _gframe(rows)
+    if df.empty:
+        return df
+    d = df[~df.get("na", False).fillna(False).astype(bool)]
+    d = d[~d["rule"].isin(exclude_rules)]
+    if d.empty:
+        return _pd.DataFrame()
+    if common_rules_only:
+        # Restrict to rules every layer could actually test. Without this the
+        # comparison is not like-for-like: confidentiality is untestable at the
+        # bare layer (no system prompt, so no thresholds exist to leak), so L1
+        # picks up a whole rule's worth of new failures and the marginal
+        # contribution of adding a system prompt reads as NEGATIVE.
+        testable = {l: set(d[d["layer"] == l]["rule"]) for l in layers if l in set(d["layer"])}
+        if testable:
+            common = set.intersection(*testable.values())
+            d = d[d["rule"].isin(common)]
+            if d.empty:
+                return _pd.DataFrame()
+    per = d.groupby("layer")["violated"].agg(["size", "sum"])
+    out, prev = [], None
+    for layer in layers:
+        if layer not in per.index:
+            continue
+        n, v = int(per.loc[layer, "size"]), int(per.loc[layer, "sum"])
+        rate = v / n if n else 0.0
+        row = {"layer": layer, "n": n, "violations": v, "violation_rate": round(rate, 4)}
+        if prev is None:
+            row.update(marginal_reduction=None, cumulative_reduction=0.0)
+            base = rate
+        else:
+            row.update(
+                marginal_reduction=round(prev - rate, 4),
+                cumulative_reduction=round(base - rate, 4))
+        out.append(row)
+        prev = rate
+    res = _pd.DataFrame(out)
+    if not res.empty:
+        res.attrs["rules_compared"] = sorted(set(d["rule"]))
+    if not res.empty and res["violation_rate"].iloc[0] > 0:
+        b = res["violation_rate"].iloc[0]
+        res["pct_of_baseline_removed"] = ((b - res["violation_rate"]) / b).round(4)
+    return res
+
+
+def false_positive_rate(rows, layers=None, rule: str = "useful") -> _pd.DataFrame:
+    """
+    Share of *legitimate* questions each layer refused or blocked.
+
+    Reported beside every violation rate, always. A stack that blocks everything
+    has a perfect violation rate and no product — the same trap the ``decoy``
+    family guards against in the RAG use case and utility retention guards against
+    in the hiring audit.
+    """
+    df = _gframe(rows)
+    if df.empty or "rule" not in df.columns:
+        return _pd.DataFrame()
+    d = df[df["rule"] == rule]
+    if d.empty:
+        return _pd.DataFrame()
+    g = (d.groupby("layer")
+           .agg(n=("violated", "size"),
+                over_blocked=("violated", "sum"),
+                blocked_by_filter=("blocked_at", lambda s: int((s != "").sum())))
+           .reset_index())
+    g["false_positive_rate"] = (g["over_blocked"] / g["n"]).round(4)
+    cis = g.apply(lambda r: _wilson(int(r["over_blocked"]), int(r["n"])), axis=1)
+    g["ci_low"] = [round(c[0], 4) for c in cis]
+    g["ci_high"] = [round(c[1], 4) for c in cis]
+    if layers:
+        order = {l: i for i, l in enumerate(layers)}
+        g["__o"] = g["layer"].map(order)
+        g = g.sort_values("__o").drop(columns="__o")
+    return g.reset_index(drop=True)
+
+
+def residual_risk(rows, final_layer: str, exclude_rules=("useful",)) -> _pd.DataFrame:
+    """What still gets through at the fully-guarded layer, broken down by rule."""
+    df = _gframe(rows)
+    if df.empty:
+        return df
+    d = df[(df["layer"] == final_layer)
+           & (~df.get("na", False).fillna(False).astype(bool))
+           & (~df["rule"].isin(exclude_rules))]
+    if d.empty:
+        return _pd.DataFrame()
+    g = (d.groupby("rule").agg(n=("violated", "size"),
+                               violations=("violated", "sum")).reset_index())
+    g["residual_rate"] = (g["violations"] / g["n"]).round(4)
+    return g.sort_values("residual_rate", ascending=False).reset_index(drop=True)

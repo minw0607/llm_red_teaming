@@ -66,6 +66,9 @@ from .rag_metrics import (
     minimum_detectable_leak, print_rag_report,
 )
 from .hiring_executive import generate_hiring_summary, render_hiring_html, compute_hiring_metrics
+from .guardrail import (
+    violation_rates, layer_attribution, false_positive_rate, residual_risk,
+)
 from .guardrail import guardrail_delta, guardrail_comparison, print_guardrail_report
 from .sanity import sanity_check, render_sanity_html
 
