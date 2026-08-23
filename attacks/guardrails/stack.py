@@ -48,6 +48,11 @@ LAYER_NOTE = {
 BLOCK_MESSAGE = ("I'm not able to help with that here. For anything involving "
                  "eligibility, advice or account security, please speak to our team.")
 
+#: What L0 sends. "Bare" means *none of the bank's rules* — not a null system
+#: message, which the API rejects outright. This generic line is the honest
+#: baseline: a competent assistant that has never been told it works for a bank.
+BARE_SYSTEM_PROMPT = "You are a helpful assistant."
+
 
 # ── Layer 2: input screening ────────────────────────────────────────────────────
 # Fires on the shapes of a request, before any model call. Cheap, and it never
@@ -151,7 +156,7 @@ class BankAssistant:
                 return StackResponse(text=BLOCK_MESSAGE, blocked_at="input",
                                      block_reason=why, layer=self.layer)
 
-        system = APP_SYSTEM_PROMPT if self.uses_system_prompt else None
+        system = APP_SYSTEM_PROMPT if self.uses_system_prompt else BARE_SYSTEM_PROMPT
         try:
             raw = self.target.complete(user_prompt=prompt, system_prompt=system)
         except Exception as exc:

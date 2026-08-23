@@ -18,7 +18,7 @@ from .stack import (
     input_filter, output_filter, null_filter,
 )
 from .runner import (
-    GuardrailResult, HARNESS_VERSION, run_all_layers, run_layer, score_probe,
+    GuardrailResult, HARNESS_VERSION, run_all_layers, run_layer, score_probe, rescore_results,
 )
 
 __all__ = [
@@ -26,5 +26,5 @@ __all__ = [
     "CHECKS", "INVERTED_RULES", "Probe", "RULES", "build_probes", "probe_summary",
     "BankAssistant", "LAYERS", "LAYER_NOTE", "StackResponse",
     "input_filter", "output_filter", "null_filter",
-    "GuardrailResult", "HARNESS_VERSION", "run_all_layers", "run_layer", "score_probe",
+    "GuardrailResult", "HARNESS_VERSION", "run_all_layers", "run_layer", "score_probe", "rescore_results",
 ]
