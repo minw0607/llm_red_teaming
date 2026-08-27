@@ -2,6 +2,19 @@
 
 **Runtime:** 8–10 minutes of demo, leaving 5 for questions in a 15-minute slot.
 
+Two ways to present the same demo — pick one.
+
+**Notebook** (recommended if you're already sharing a screen with Jupyter open):
+
+```bash
+jupyter notebook demo/leadership_demo.ipynb
+```
+
+Six code cells, five of them a single line. Run one cell, talk, run the next.
+Set `replay=False` in the first cell to call the model live.
+
+**Terminal script** (bigger text, nothing but the demo on screen):
+
 ```bash
 python demo/leadership_demo.py --replay     # recommended for a live audience
 python demo/leadership_demo.py              # live API calls
@@ -9,6 +22,13 @@ python demo/leadership_demo.py --no-pause   # rehearsal, runs straight through
 ```
 
 The script pauses at every beat and waits for **Enter**. Talk, then press.
+
+*Either way, use replay mode in front of leadership.* A live call can hang,
+rate-limit, or trip a content filter mid-sentence; replay is visually identical and
+cannot.
+
+**Before you present:** run it once end to end. If you use the notebook, run
+`Kernel → Restart & Clear Output` afterwards so you start from a blank slate.
 
 **Use `--replay` unless the room is small and the network is certain.** It plays back
 the exact responses from the recorded run — visually identical, and it cannot hang,
@@ -81,7 +101,9 @@ Then move on. The write-up is `docs/06b_rag_data_leakage.md`.
 
 ## What NOT to do
 
-- Don't show the notebook. Too much on screen, and the code invites code questions.
+- Don't show the *workstream* notebooks (`notebooks/06b_…`). They're built for
+  analysis, not an audience — too much on screen, and the code invites code
+  questions. `demo/leadership_demo.ipynb` is the one built for this.
 - Don't lead with the model name or the vendor. The finding is about the *deployment*,
   and naming a vendor makes it sound like a procurement issue.
 - Don't claim it proves the system is unsafe overall. It proves one specific class of
