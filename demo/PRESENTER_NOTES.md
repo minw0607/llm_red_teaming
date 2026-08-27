@@ -7,7 +7,7 @@ Two ways to present the same demo — pick one.
 **Notebook** (recommended if you're already sharing a screen with Jupyter open):
 
 ```bash
-jupyter notebook demo/leadership_demo.ipynb
+jupyter notebook demo/data_red_teaming_demo.ipynb
 ```
 
 Six code cells, five of them a single line. Run one cell, talk, run the next.
@@ -119,7 +119,7 @@ Then move on. The write-up is `docs/06b_rag_data_leakage.md`.
 
 - Don't show the *workstream* notebooks (`notebooks/06b_…`). They're built for
   analysis, not an audience — too much on screen, and the code invites code
-  questions. `demo/leadership_demo.ipynb` is the one built for this.
+  questions. `demo/data_red_teaming_demo.ipynb` is the one built for this.
 - Don't lead with the model name or the vendor. The finding is about the *deployment*,
   and naming a vendor makes it sound like a procurement issue.
 - Don't claim it proves the system is unsafe overall. It proves one specific class of
