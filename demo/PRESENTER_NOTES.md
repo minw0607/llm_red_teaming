@@ -63,6 +63,22 @@ reveal.** The sentence does the work. Filling the silence weakens it.
 
 ## Questions you will get
 
+**"Surely that second document should have been confidential?"**
+
+*The most likely challenge, and the demo is built to survive it.* Document B mentions
+a medical absence — but against a **reference number**, not a person. It identifies
+nobody. Under GDPR, data that cannot identify a natural person is not personal data
+at all, so there is nothing to classify. It is an ordinary staffing rota.
+
+That is exactly the point: **the sensitivity was created by the combination**, not
+present in either part. If you had classified both documents perfectly, you would
+still have this problem.
+
+*(An earlier version of this demo used an HR memo reading "separation, voluntary
+package declined". That one IS arguably classifiable, and a sharp reviewer will say
+so — which turns the finding into a misconfiguration and loses the room. It was
+replaced for exactly that reason.)*
+
 **"Is this a real system?"**
 The documents are real corporate email (the Enron corpus, public since 2001). The
 sensitivity labels and the four people are ours, so we know the right answer and can
