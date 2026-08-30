@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retrieval Exposure Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#EDEAE4; --surface:#FFF; --rule:#D8D3C9;
+  --fg:#1A1F26; --dim:#5A6673; --faint:#94A1B2;
+  --paper:#FFF; --paper-rule:#E2DDD3; --paper-ink:#1A1F26;
+  --flag:#B3372F; --flag-soft:#FBEAE8;
+  --pass:#3F8F6F; --pass-soft:#E7F3EE;
+  --warn:#B57320; --warn-soft:#FBF1E2;
+  --sans:'Archivo',system-ui,sans-serif; --mono:'IBM Plex Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#14181D; --surface:#1E252E; --rule:#2B3441;
+  --fg:#E4E9EF; --dim:#94A1B2; --faint:#5E6B7A;
+  --paper:#F7F5F0; --paper-rule:#DAD5CA; --paper-ink:#1A1F26;
+  --flag:#D4574C; --flag-soft:#3A1E1D;
+  --pass:#4C9E7A; --pass-soft:#16302A;
+  --warn:#D3963F; --warn-soft:#33270F;
+}}
+:root[data-theme="dark"]{
+  --ground:#14181D; --surface:#1E252E; --rule:#2B3441;
+  --fg:#E4E9EF; --dim:#94A1B2; --faint:#5E6B7A;
+  --paper:#F7F5F0; --paper-rule:#DAD5CA; --paper-ink:#1A1F26;
+  --flag:#D4574C; --flag-soft:#3A1E1D;
+  --pass:#4C9E7A; --pass-soft:#16302A;
+  --warn:#D3963F; --warn-soft:#33270F;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--fg);font-family:var(--sans);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:26px 28px 90px}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;
+  padding-bottom:16px;border-bottom:1px solid var(--rule);margin-bottom:26px;flex-wrap:wrap}
+h1{font-size:23px;font-weight:700;margin:0;letter-spacing:-.012em}
+.sub{font-size:13.5px;color:var(--faint);margin-top:3px}
+.live-badge{font-family:var(--mono);font-size:11.5px;color:var(--pass);
+  border:1px solid var(--pass);padding:5px 11px;border-radius:4px;white-space:nowrap}
+
+nav{display:flex;gap:4px;margin-bottom:26px;flex-wrap:wrap}
+nav button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:6px;
+  border:1px solid transparent;background:transparent;color:var(--dim);cursor:pointer}
+nav button:hover,nav button:focus-visible{color:var(--fg);outline:none}
+nav button[aria-selected="true"]{background:var(--surface);border-color:var(--rule);color:var(--fg)}
+
+.panel{display:none}.panel.on{display:block}
+h2{font-size:19px;font-weight:600;margin:0 0 7px;letter-spacing:-.008em}
+p.note{font-size:14.5px;color:var(--dim);margin:0 0 20px;max-width:74ch}
+
+.ctl{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+input[type=text],select{font:inherit;font-size:15.5px;padding:11px 14px;border-radius:6px;
+  border:1px solid var(--rule);background:var(--surface);color:var(--fg)}
+input[type=text]{flex:1;min-width:260px}
+input:focus,select:focus{outline:2px solid var(--pass);outline-offset:1px}
+button.go{font:inherit;font-size:14.5px;font-weight:600;padding:11px 20px;border-radius:6px;
+  border:1px solid var(--fg);background:var(--fg);color:var(--ground);cursor:pointer}
+button.go:hover,button.go:focus-visible{opacity:.87;outline:none}
+button.go:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--faint);margin-bottom:18px}
+.hint b{color:var(--dim);font-weight:500}
+.chip{display:inline-block;font:inherit;font-size:12.5px;padding:4px 10px;margin:0 5px 5px 0;
+  border-radius:20px;border:1px solid var(--rule);background:var(--surface);color:var(--dim);cursor:pointer}
+.chip:hover,.chip:focus-visible{color:var(--fg);border-color:var(--faint);outline:none}
+
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.col{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:15px}
+.col h3{font-size:13px;font-weight:700;margin:0 0 3px;letter-spacing:.03em;font-family:var(--mono)}
+.col .why{font-size:12.5px;color:var(--faint);margin-bottom:4px;min-height:2.6em}
+.pool{font-size:12px;color:var(--dim);font-family:var(--mono);padding:6px 0 10px;
+  border-bottom:1px solid var(--rule);margin-bottom:10px}
+.pool b{color:var(--fg)}
+.hit{display:flex;gap:9px;align-items:baseline;padding:6px 0;font-size:13px;
+  border-bottom:1px solid var(--rule)}
+.hit:last-child{border-bottom:none}
+.hit .sc{font-family:var(--mono);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.hit .id{font-family:var(--mono);font-size:12px;color:var(--faint);cursor:pointer;text-decoration:underline;
+  text-underline-offset:2px}
+.hit .tier{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:3px;
+  background:var(--rule);color:var(--dim);white-space:nowrap}
+.hit.bad{background:var(--flag-soft);margin:0 -8px;padding:6px 8px;border-radius:4px}
+.hit.bad .tier{background:var(--flag);color:#fff}
+.hit.gone{opacity:.42}
+.tally{margin-top:11px;padding-top:10px;border-top:1px solid var(--rule);font-size:13px}
+.tally.bad{color:var(--flag);font-weight:600}
+.tally.ok{color:var(--pass);font-weight:600}
+.tally.warn{color:var(--warn);font-weight:600}
+
+.doc{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-rule);
+  border-radius:6px;padding:15px 17px;margin:10px 0;overflow-x:auto}
+.doc .dh{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:#7A6F5E;margin-bottom:8px;display:flex;justify-content:space-between;gap:12px}
+.doc pre{font-family:var(--mono);font-size:12.4px;line-height:1.6;margin:0;white-space:pre-wrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.two{grid-template-columns:1fr}}
+
+.ask{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--faint);
+  border-radius:0 6px 6px 0;padding:14px 17px;font-size:16px;margin:16px 0 11px}
+.ans{border-radius:0 6px 6px 0;padding:18px;font-size:22px;font-weight:600;line-height:1.4;
+  background:var(--flag-soft);border-left:3px solid var(--flag);color:var(--fg)}
+.tag{display:inline-block;margin-top:12px;padding:6px 13px;border-radius:4px;font-size:11.5px;
+  font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--flag);color:#fff}
+.tag.ok{background:var(--pass);color:#06130E}
+.meta{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:11px}
+
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin-top:6px}
+th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  padding:8px 12px;border-bottom:1px solid var(--rule);font-weight:700}
+td{padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--dim)}
+td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;color:var(--fg);font-weight:600}
+td.f{font-family:var(--mono);font-size:12.5px;color:var(--faint)}
+tr:last-child td{border-bottom:none}
+.total{margin-top:18px;font-size:15px;color:var(--fg)}
+.total b{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+.list{background:var(--surface);border:1px solid var(--rule);border-radius:8px;max-height:430px;
+  overflow-y:auto}
+.list .r{display:flex;gap:11px;align-items:baseline;padding:9px 14px;border-bottom:1px solid var(--rule);
+  font-size:13.5px;cursor:pointer}
+.list .r:hover{background:var(--ground)}
+.list .r:last-child{border-bottom:none}
+.spin{font-size:14px;color:var(--faint);padding:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Retrieval Exposure Console</h1>
+    <div class="sub">Live index over <span id="ndocs">…</span> real internal documents · nothing on this page is pre-scripted</div>
+  </div>
+  <div class="live-badge" id="badge">connecting…</div>
+</header>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-p="ask">Ask the index</button>
+  <button role="tab" aria-selected="false" data-p="corpus">The documents</button>
+  <button role="tab" aria-selected="false" data-p="disclose">The disclosure</button>
+  <button role="tab" aria-selected="false" data-p="receipts">Evidence</button>
+</nav>
+
+<!-- ─────────── ASK ─────────── -->
+<section class="panel on" id="p-ask">
+  <h2>Type any question. Watch three permission architectures answer it differently.</h2>
+  <p class="note">The same query runs against the same index three times. The only thing that
+  changes is <em>where</em> the permission check happens — and that alone decides whether documents
+  this person may not read reach the assistant.</p>
+
+  <div class="ctl">
+    <input type="text" id="q" placeholder="e.g. what did we agree about the Friday meeting?" autocomplete="off">
+    <select id="clr"></select>
+    <button class="go" id="run">Search</button>
+  </div>
+  <div class="hint"><b>Try:</b>
+    <button class="chip">quarterly earnings and the board</button>
+    <button class="chip">legal hold and outside counsel</button>
+    <button class="chip">who is on medical leave</button>
+    <button class="chip">the acquisition timeline</button>
+  </div>
+  <div id="results"></div>
+</section>
+
+<!-- ─────────── CORPUS ─────────── -->
+<section class="panel" id="p-corpus">
+  <h2>The documents are real</h2>
+  <p class="note">Genuine corporate email from the Enron corpus — released publicly by US federal
+  regulators and used as the standard corpus for privacy research. Search it, open anything.
+  The sensitivity labels are ours; the documents are not.</p>
+  <div class="ctl">
+    <input type="text" id="cq" placeholder="search the full text…" autocomplete="off">
+    <button class="go" id="cgo">Search</button>
+  </div>
+  <div id="cinfo" class="hint"></div>
+  <div class="list" id="clist"></div>
+  <div id="cdoc"></div>
+</section>
+
+<!-- ─────────── DISCLOSURE ─────────── -->
+<section class="panel" id="p-disclose">
+  <h2>Two permitted documents, one confidential answer</h2>
+  <p class="note">Every document below is classified INTERNAL — readable by every employee. The
+  retrieval is live; the answer is either a live model call or the recorded run, and the page says
+  which.</p>
+  <div class="ctl">
+    <select id="dset"></select>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;color:var(--dim)">
+      <input type="checkbox" id="dlive"> call the model live
+    </label>
+    <button class="go" id="dgo">Run</button>
+  </div>
+  <div id="dout"></div>
+</section>
+
+<!-- ─────────── RECEIPTS ─────────── -->
+<section class="panel" id="p-receipts">
+  <h2>What has actually been run</h2>
+  <p class="note">Row counts read live from the result files on this machine. Every row is one
+  model response with its verdict, timestamped and replayable.</p>
+  <div id="rout"></div>
+</section>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const get = async (p, q={}) =>
+  (await fetch(p + '?' + new URLSearchParams(q))).json();
+
+const ARCH = {
+  no_filter:   ['no permission check', 'ranks all documents, sends the top 5'],
+  post_filter: ['check after ranking', 'ranks all, then discards what she may not read'],
+  pre_filter:  ['check before ranking', 'searches only what she may read']
+};
+
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p' + '-' + b.dataset.p));
+  if (b.dataset.p === 'receipts') receipts();
+  if (b.dataset.p === 'corpus' && !$('#clist').innerHTML) corpus();
+}));
+
+(async function init(){
+  const m = await get('/api/meta');
+  $('#ndocs').textContent = m.documents;
+  $('#badge').textContent = 'index live · ' + m.documents + ' docs';
+  $('#clr').innerHTML = Object.entries(m.clearances)
+    .map(([r,c]) => `<option value="${r}"${r==='employee'?' selected':''}>${r} — cleared for ${c}</option>`).join('');
+  $('#dset').innerHTML = Object.keys(m.sets)
+    .map(k => `<option value="${k}"${k==='AGG3'?' selected':''}>${esc(m.sets[k])}</option>`).join('');
+})();
+
+async function search(){
+  const q = $('#q').value.trim();
+  if (!q) return;
+  $('#results').innerHTML = '<div class="spin">scoring every document…</div>';
+  const r = await get('/api/search', {q, clearance: $('#clr').value});
+  $('#results').innerHTML = '<div class="cols">' + Object.entries(ARCH).map(([a,[name,why]]) => {
+    const d = r[a], bad = d.delivered.filter(h => !h.entitled).length;
+    const hits = d.delivered.map(h =>
+      `<div class="hit${h.entitled?'':' bad'}">
+         <span class="sc">${h.score.toFixed(3)}</span>
+         <span class="id" data-id="${h.id}">${h.id}</span>
+         <span class="tier">${h.tier}</span></div>`).join('')
+      + d.withheld.map(h =>
+      `<div class="hit gone"><span class="sc">${h.score.toFixed(3)}</span>
+         <span class="id" data-id="${h.id}">${h.id}</span>
+         <span class="tier">${h.tier} · dropped</span></div>`).join('');
+    let tally, cls;
+    if (bad) { tally = bad + ' document' + (bad>1?'s':'') + ' she may not read → sent to the assistant'; cls='bad'; }
+    else if (d.withheld.length) { tally = d.delivered.length + ' of 5 slots usable — ' + d.withheld.length + ' fetched then discarded'; cls='warn'; }
+    else { tally = 'all ' + d.delivered.length + ' usable, none forbidden'; cls='ok'; }
+    return `<div class="col"><h3>${a}</h3><div class="why">${why}</div>
+      <div class="pool">searched <b>${d.pool}</b> of ${$('#ndocs').textContent}</div>
+      ${hits}<div class="tally ${cls}">${tally}</div></div>`;
+  }).join('') + '</div>';
+  document.querySelectorAll('.hit .id').forEach(el =>
+    el.addEventListener('click', () => showDoc(el.dataset.id)));
+}
+$('#run').addEventListener('click', search);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  $('#q').value = c.textContent; search();
+}));
+
+async function showDoc(id){
+  const d = await get('/api/doc', {id});
+  const el = document.createElement('div');
+  el.className = 'doc';
+  el.innerHTML = `<div class="dh"><span>${d.id}</span><span>${d.tier}</span></div>
+                  <pre>${esc(d.text)}</pre>`;
+  const host = $('#p-corpus').classList.contains('on') ? $('#cdoc') : $('#results');
+  host.prepend(el);
+  el.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+async function corpus(){
+  const r = await get('/api/corpus', {q: $('#cq').value.trim()});
+  $('#cinfo').innerHTML = `<b>${r.matched}</b> of ${r.total} documents match` +
+    (r.matched > r.docs.length ? ` · showing first ${r.docs.length}` : '');
+  $('#clist').innerHTML = r.docs.map(d =>
+    `<div class="r" data-id="${d.id}"><span class="hit"><span class="id">${d.id}</span></span>
+     <span class="tier" style="font-family:var(--mono);font-size:10.5px">${d.tier}</span>
+     <span>${esc(d.title)}</span></div>`).join('') || '<div class="spin">no matches</div>';
+  document.querySelectorAll('#clist .r').forEach(el =>
+    el.addEventListener('click', () => showDoc(el.dataset.id)));
+}
+$('#cgo').addEventListener('click', corpus);
+$('#cq').addEventListener('keydown', e => { if (e.key === 'Enter') corpus(); });
+
+async function disclose(){
+  $('#dout').innerHTML = '<div class="spin">retrieving…</div>';
+  const r = await get('/api/disclose', {set: $('#dset').value, live: $('#dlive').checked ? 1 : 0});
+  const docs = r.documents.map((d,i) =>
+    `<div class="doc"><div class="dh"><span>Document ${'AB'[i]} · ${d.id}</span>
+     <span style="color:#3F8F6F">${d.tier} — all staff</span></div>
+     <pre>${esc(d.text)}</pre></div>`).join('');
+  $('#dout').innerHTML = `<div class="two">${docs}</div>
+    <div class="ask">${esc(r.question)}</div>
+    <div class="ans">${esc(r.answer)}</div>
+    <span class="tag${r.composed ? '' : ' ok'}">${r.composed
+      ? 'Confidential — disclosed' : 'Declined to combine'}</span>
+    <div class="meta">both fragments retrieved: ${r.fragments_delivered}/${r.fragments_total}
+      &nbsp;·&nbsp; answer: ${r.source}${r.error ? ' (live call failed: ' + esc(r.error) + ')' : ''}
+      &nbsp;·&nbsp; scored by exact string match, not by a model</div>`;
+}
+$('#dgo').addEventListener('click', disclose);
+
+async function receipts(){
+  const r = await get('/api/receipts');
+  $('#rout').innerHTML = `<table><thead><tr><th>What was tested</th><th>Responses</th>
+    <th>File</th><th>Last run</th></tr></thead><tbody>` +
+    r.rows.map(x => `<tr><td style="color:var(--fg)">${x.label}</td><td class="n">${x.rows.toLocaleString()}</td>
+      <td class="f">${x.file}</td><td>${x.modified}</td></tr>`).join('') +
+    `</tbody></table><div class="total"><b>${r.total.toLocaleString()}</b> recorded model
+     responses on this machine, each with its verdict and a replayable trajectory.</div>`;
+}
+</script>
+</body>
+</html>

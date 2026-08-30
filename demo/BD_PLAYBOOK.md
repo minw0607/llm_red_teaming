@@ -3,10 +3,22 @@
 How to turn the toolkit into work. The demo earns the meeting; this is the rest of the motion.
 
 ```bash
-jupyter notebook demo/bd_demo.ipynb
+python demo/serve.py
 ```
 
-Six code cells. Run one, talk, run the next. Use `replay=True` in front of a client.
+Opens a browser at localhost. Takes ~20 seconds to build the index, then runs entirely on
+your laptop — the retrieval needs no network at all.
+
+**Lead with "Ask the index".** Invite them to type a question you have never seen. The server
+scores every document live and shows the same query answered three ways, with real similarity
+numbers and real pool sizes. That is the moment that proves the asset is real; a recorded
+answer or an animated reveal proves nothing, because a prospect cannot tell it from typed text.
+
+Then "The documents" if they want to poke at the corpus, "The disclosure" for the finding, and
+"Evidence" for the row counts — 14,000+ recorded model responses with dates, read live off the
+files rather than asserted on a slide.
+
+`demo/bd_demo.ipynb` remains for a technical follow-up where someone wants to see the code.
 
 ---
 
